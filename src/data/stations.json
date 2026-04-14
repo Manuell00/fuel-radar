@@ -1,0 +1,181 @@
+[
+  {
+    "id": "f01",
+    "name": "ENI Piazza Corvetto",
+    "brand": "ENI",
+    "address": "Piazza Corvetto 4, Genova (GE)",
+    "lat": 44.4094,
+    "lng": 8.9442,
+    "prices": {
+      "benzina": { "self": 1.789, "full": 1.849 },
+      "diesel":  { "self": 1.679 }
+    }
+  },
+  {
+    "id": "f02",
+    "name": "Q8 Via XX Settembre",
+    "brand": "Q8",
+    "address": "Via XX Settembre 22, Genova (GE)",
+    "lat": 44.4073,
+    "lng": 8.9407,
+    "prices": {
+      "benzina": { "self": 1.779, "full": 1.829 },
+      "diesel":  { "self": 1.669, "full": 1.719 }
+    }
+  },
+  {
+    "id": "f03",
+    "name": "IP Corso Torino",
+    "brand": "IP",
+    "address": "Corso Torino 15, Genova (GE)",
+    "lat": 44.3988,
+    "lng": 8.9522,
+    "prices": {
+      "benzina": { "self": 1.799 },
+      "gpl":     { "self": 0.769, "full": 0.789 }
+    }
+  },
+  {
+    "id": "f04",
+    "name": "ENI Via Casaregis",
+    "brand": "ENI",
+    "address": "Via Casaregis 38, Genova (GE)",
+    "lat": 44.4029,
+    "lng": 8.9611,
+    "prices": {
+      "diesel":  { "self": 1.659, "full": 1.699 },
+      "benzina": { "self": 1.769 }
+    }
+  },
+  {
+    "id": "f05",
+    "name": "Shell Via Corsica",
+    "brand": "Shell",
+    "address": "Via Corsica 7, Genova (GE)",
+    "lat": 44.4013,
+    "lng": 8.9349,
+    "prices": {
+      "diesel":  { "full": 1.729 },
+      "benzina": { "full": 1.849 }
+    }
+  },
+  {
+    "id": "f06",
+    "name": "TotalEnergies Via Fieschi",
+    "brand": "TotalEnergies",
+    "address": "Via Fieschi 11, Genova (GE)",
+    "lat": 44.4102,
+    "lng": 8.9488,
+    "prices": {
+      "diesel":  { "self": 1.649, "full": 1.699 },
+      "benzina": { "self": 1.759, "full": 1.809 }
+    }
+  },
+  {
+    "id": "f07",
+    "name": "Esso Via Balbi",
+    "brand": "Esso",
+    "address": "Via Balbi 48, Genova (GE)",
+    "lat": 44.4144,
+    "lng": 8.9210,
+    "prices": {
+      "benzina": { "self": 1.769, "full": 1.819 }
+    }
+  },
+  {
+    "id": "f08",
+    "name": "Tamoil Via Piacenza",
+    "brand": "Tamoil",
+    "address": "Via Piacenza 12, Genova (GE)",
+    "lat": 44.4199,
+    "lng": 8.9328,
+    "prices": {
+      "diesel":  { "self": 1.639 },
+      "benzina": { "self": 1.749 }
+    }
+  },
+  {
+    "id": "f09",
+    "name": "API Corso Buenos Aires",
+    "brand": "API",
+    "address": "Corso Buenos Aires 5, Genova (GE)",
+    "lat": 44.3965,
+    "lng": 8.9479,
+    "prices": {
+      "gpl":     { "self": 0.759, "full": 0.779 },
+      "benzina": { "self": 1.779 }
+    }
+  },
+  {
+    "id": "f10",
+    "name": "Q8 Via Donghi",
+    "brand": "Q8",
+    "address": "Via Donghi 3, Genova (GE)",
+    "lat": 44.4232,
+    "lng": 8.9543,
+    "prices": {
+      "benzina": { "self": 1.749, "full": 1.799 },
+      "diesel":  { "self": 1.649 }
+    }
+  },
+  {
+    "id": "f11",
+    "name": "ENI Lungobisagno",
+    "brand": "ENI",
+    "address": "Lungobisagno Istria 42, Genova (GE)",
+    "lat": 44.3894,
+    "lng": 8.9592,
+    "prices": {
+      "gpl":     { "self": 0.749 },
+      "diesel":  { "self": 1.659 }
+    }
+  },
+  {
+    "id": "f12",
+    "name": "IP Via Bertani",
+    "brand": "IP",
+    "address": "Via Gian Lorenzo Bertani 8, Genova (GE)",
+    "lat": 44.4067,
+    "lng": 8.9290,
+    "prices": {
+      "gpl":     { "self": 0.769 },
+      "benzina": { "self": 1.759, "full": 1.809 }
+    }
+  },
+  {
+    "id": "f13",
+    "name": "Shell Piazza Caricamento",
+    "brand": "Shell",
+    "address": "Piazza Caricamento 2, Genova (GE)",
+    "lat": 44.4157,
+    "lng": 8.9305,
+    "prices": {
+      "benzina": { "full": 1.859 },
+      "diesel":  { "full": 1.719 }
+    }
+  },
+  {
+    "id": "f14",
+    "name": "Esso Via di Francia",
+    "brand": "Esso",
+    "address": "Via di Francia 4, Genova (GE)",
+    "lat": 44.4189,
+    "lng": 8.9146,
+    "prices": {
+      "diesel":  { "self": 1.649, "full": 1.699 },
+      "benzina": { "self": 1.759 }
+    }
+  },
+  {
+    "id": "f15",
+    "name": "Tamoil Sestri Ponente",
+    "brand": "Tamoil",
+    "address": "Via Sestri 87, Sestri Ponente (GE)",
+    "lat": 44.4298,
+    "lng": 8.8931,
+    "prices": {
+      "benzina": { "self": 1.739, "full": 1.789 },
+      "diesel":  { "self": 1.629 }
+    }
+  }
+]
