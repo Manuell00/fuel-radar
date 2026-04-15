@@ -89,9 +89,9 @@ function sliderPct(value) {
 
 <style scoped>
 .filter-bar {
-  padding: 20px;
+  padding: 28px 24px;
   display: grid;
-  gap: 18px;
+  gap: 24px;
   position: relative;
   overflow: hidden;
 }
@@ -127,7 +127,7 @@ function sliderPct(value) {
 .filter-grid {
   display: grid;
   grid-template-columns: 1.1fr 1.1fr 0.9fr;
-  gap: 14px;
+  gap: 18px;
   position: relative;
   z-index: 1;
 }
@@ -135,12 +135,12 @@ function sliderPct(value) {
 .filter-group {
   position: relative;
   overflow: hidden;
-  padding: 16px;
+  padding: 20px 18px;
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.03);
   display: grid;
-  gap: 12px;
+  gap: 16px;
   justify-items: center;
   text-align: center;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
@@ -292,7 +292,7 @@ function sliderPct(value) {
 
 @media (max-width: 560px) {
   .filter-bar {
-    padding: 16px;
+    padding: 22px 18px;
   }
 }
 </style>

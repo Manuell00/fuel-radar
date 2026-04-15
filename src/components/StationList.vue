@@ -68,12 +68,13 @@ function estimateMinutes(distanceKm) {
 <style scoped>
 .station-list {
   display: grid;
-  gap: 16px;
+  gap: 22px;
 }
 
 .section-head {
   display: grid;
-  gap: 6px;
+  gap: 10px;
+  margin-bottom: 4px;
 }
 
 .section-kicker {
@@ -94,14 +95,14 @@ function estimateMinutes(distanceKm) {
 .list {
   list-style: none;
   display: grid;
-  gap: 12px;
+  gap: 16px;
   counter-reset: station-rank;
 }
 
 .list-item {
   position: relative;
   overflow: hidden;
-  padding: 14px;
+  padding: 18px;
   border-radius: 22px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background:
@@ -110,7 +111,7 @@ function estimateMinutes(distanceKm) {
   box-shadow: 0 18px 36px rgba(0, 0, 0, 0.18);
   display: flex;
   align-items: stretch;
-  gap: 12px;
+  gap: 16px;
   transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
 }
 

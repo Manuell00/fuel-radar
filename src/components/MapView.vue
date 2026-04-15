@@ -314,14 +314,14 @@ watch(
 
 <style scoped>
 .map-view {
-  padding: 20px;
+  padding: 28px 24px;
   display: grid;
-  gap: 16px;
+  gap: 24px;
 }
 
 .map-copy {
   display: grid;
-  gap: 10px;
+  gap: 14px;
   justify-items: center;
   text-align: center;
   animation: map-copy-in 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -356,7 +356,7 @@ watch(
 
 .map-stage {
   position: relative;
-  min-height: 460px;
+  min-height: 500px;
   border-radius: 24px;
   overflow: hidden;
   background:
@@ -389,12 +389,12 @@ watch(
 
 .map-canvas {
   width: 100%;
-  height: 460px;
+  height: 500px;
 }
 
 @media (max-width: 720px) {
   .map-view {
-    padding: 16px;
+    padding: 22px 18px;
   }
 
   .map-stage,

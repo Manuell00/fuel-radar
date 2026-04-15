@@ -54,14 +54,14 @@ defineProps({
 
 <style scoped>
 .app-header {
-  padding: 34px 0 18px;
+  padding: 42px 0 28px;
 }
 
 .header-shell {
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
   display: grid;
-  gap: 18px;
+  gap: 28px;
   position: relative;
   isolation: isolate;
 }
@@ -81,8 +81,8 @@ defineProps({
 
 .hero-copy {
   display: grid;
-  gap: 14px;
-  padding: 8px 2px 0;
+  gap: 18px;
+  padding: 16px 2px 0;
 }
 
 .hero-title-wrap {
@@ -164,13 +164,13 @@ defineProps({
 .hero-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 18px;
 }
 
 .metric-card {
   position: relative;
   overflow: hidden;
-  padding: 18px 18px 16px;
+  padding: 22px 20px 20px;
   border-radius: 22px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background:
@@ -254,7 +254,7 @@ defineProps({
 
 @media (max-width: 560px) {
   .app-header {
-    padding-top: 24px;
+    padding-top: 28px;
   }
 
   .brand-row {

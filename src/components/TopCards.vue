@@ -46,12 +46,13 @@ const emit = defineEmits(['select-station'])
 <style scoped>
 .top-cards {
   display: grid;
-  gap: 16px;
+  gap: 22px;
 }
 
 .section-head {
   display: grid;
-  gap: 6px;
+  gap: 10px;
+  margin-bottom: 4px;
 }
 
 .section-kicker {
@@ -72,7 +73,7 @@ const emit = defineEmits(['select-station'])
 .cards-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 18px;
 }
 
 @media (max-width: 860px) {

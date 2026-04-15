@@ -239,12 +239,13 @@ function selectStation(station) {
 .main-shell {
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 0 0 48px;
+  padding: 0 0 72px;
 }
 
 .hero-stack {
   display: grid;
-  gap: 16px;
+  gap: 26px;
+  margin-bottom: 34px;
 }
 
 .filters-wrap,
@@ -263,12 +264,12 @@ function selectStation(station) {
 
 .dashboard {
   display: grid;
-  gap: 24px;
+  gap: 34px;
 }
 
 .results-wrap {
   display: grid;
-  gap: 22px;
+  gap: 30px;
 }
 
 .loading-panel {
@@ -369,7 +370,7 @@ function selectStation(station) {
 @media (max-width: 720px) {
   .main-shell {
     width: min(100%, calc(100% - 20px));
-    padding-bottom: 30px;
+    padding-bottom: 44px;
   }
 
   .filters-wrap,
@@ -379,7 +380,7 @@ function selectStation(station) {
   }
 
   .dashboard {
-    gap: 18px;
+    gap: 24px;
   }
 }
 </style>
