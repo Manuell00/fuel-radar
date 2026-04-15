@@ -14,15 +14,11 @@ import { useStations } from './composables/useStations.js'
 const manualLocation = ref(null)
 const selectedStation = ref(null)
 const dismissedBanner = ref('')
-const heroStackRef = ref(null)
 const mapWrapRef = ref(null)
-const savingsWrapRef = ref(null)
-const favoritesWrapRef = ref(null)
-const resultsWrapRef = ref(null)
 const showSplash = ref(true)
 const splashLeaving = ref(false)
 const favoriteIds = ref([])
-const activeMobileSection = ref('home')
+const currentPage = ref('home')
 const favoriteStorageKey = 'fuel-radar-favorites'
 const savingsAmount = ref(20)
 
@@ -88,7 +84,7 @@ const bannerMessage = computed(() => {
 
 const showBanner = computed(() => bannerMessage.value && dismissedBanner.value !== bannerMessage.value)
 const favoriteStations = computed(() => sorted.value.filter((station) => favoriteIds.value.includes(station.id)))
-const mobileSections = computed(() => ([
+const pages = computed(() => ([
   { id: 'home', label: 'Home' },
   { id: 'risparmi', label: 'Risparmi' },
   { id: 'preferiti', label: 'Preferiti' },
@@ -141,17 +137,12 @@ onMounted(async () => {
     showSplash.value = false
   }, 1550)
 
-  window.addEventListener('scroll', syncActiveMobileSection, { passive: true })
-  window.addEventListener('resize', syncActiveMobileSection, { passive: true })
   await requestLocation()
-  syncActiveMobileSection()
 })
 
 onUnmounted(() => {
   if (splashFadeTimer) window.clearTimeout(splashFadeTimer)
   if (splashHideTimer) window.clearTimeout(splashHideTimer)
-  window.removeEventListener('scroll', syncActiveMobileSection)
-  window.removeEventListener('resize', syncActiveMobileSection)
 })
 
 watch(favoriteIds, (nextIds) => {
@@ -191,6 +182,7 @@ async function selectStation(station, options = {}) {
 
   if (!options.scrollToMap) return
 
+  currentPage.value = 'home'
   await nextTick()
   mapWrapRef.value?.scrollIntoView({
     behavior: 'smooth',
@@ -198,40 +190,21 @@ async function selectStation(station, options = {}) {
   })
 }
 
-function resolveSectionElement(sectionId) {
-  if (sectionId === 'home') return heroStackRef.value
-  if (sectionId === 'risparmi') return savingsWrapRef.value
-  if (sectionId === 'radar') return mapWrapRef.value
-  if (sectionId === 'preferiti') return favoritesWrapRef.value
-  if (sectionId === 'risultati') return resultsWrapRef.value
-  return null
-}
-
-function syncActiveMobileSection() {
-  const viewportAnchor = window.innerHeight * 0.32
-
-  let current = 'home'
-  mobileSections.value.forEach((section) => {
-    const el = resolveSectionElement(section.id)
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    if (rect.top <= viewportAnchor) {
-      current = section.id
-    }
+function setCurrentPage(pageId) {
+  currentPage.value = pageId
+  selectedStation.value = null
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth',
   })
-
-  activeMobileSection.value = current
 }
 
 async function scrollToMobileSection(sectionId) {
-  const target = resolveSectionElement(sectionId)
-  if (!target) return
-
-  activeMobileSection.value = sectionId
+  currentPage.value = sectionId
   await nextTick()
-  target.scrollIntoView({
+  window.scrollTo({
+    top: 0,
     behavior: 'smooth',
-    block: 'start',
   })
 }
 
@@ -279,7 +252,7 @@ function updateFilters(nextFilters) {
       </Transition>
 
       <main class="main-shell">
-        <section ref="heroStackRef" class="hero-stack surface-enter">
+        <section class="hero-stack surface-enter">
           <LocationSearch
             :manual-location="manualLocation"
             :current-position="position"
@@ -289,13 +262,26 @@ function updateFilters(nextFilters) {
           />
         </section>
 
+        <div class="page-switcher surface-enter surface-enter--delay-1" aria-label="Sezioni principali">
+          <button
+            v-for="page in pages"
+            :key="page.id"
+            class="page-switcher__item"
+            :class="{ 'page-switcher__item--active': currentPage === page.id }"
+            type="button"
+            @click="setCurrentPage(page.id)"
+          >
+            {{ page.label }}
+          </button>
+        </div>
+
         <Transition name="content-fade" mode="out-in">
           <section v-if="loading" key="loading" class="loading-panel">
             <div class="loading-orb" aria-hidden="true"></div>
             <p class="loading-label">{{ loadingLabel }}</p>
           </section>
 
-          <section v-else key="content" class="dashboard">
+          <section v-else-if="currentPage === 'home'" key="home" class="dashboard">
             <div ref="mapWrapRef" class="map-wrap surface-enter surface-enter--delay-2">
               <MapView
                 :user-position="effectivePosition"
@@ -313,111 +299,30 @@ function updateFilters(nextFilters) {
               />
             </div>
 
-            <div ref="resultsWrapRef" class="results-wrap">
+            <div class="results-wrap">
               <section
-                ref="savingsWrapRef"
-                class="savings-section surface-enter surface-enter--delay-3"
-              >
-                <div class="savings-head">
-                  <div>
-                    <p class="section-kicker">Risparmi</p>
-                    <h2 class="section-title">Quanto ti conviene davvero</h2>
-                  </div>
-                  <p class="section-text">{{ savingsMessage }}</p>
-                </div>
-
-                <div class="savings-amounts" role="tablist" aria-label="Importo rifornimento">
-                  <button
-                    v-for="amount in savingsAmountOptions"
-                    :key="amount"
-                    class="savings-pill"
-                    :class="{ 'savings-pill--active': savingsAmount === amount }"
-                    type="button"
-                    @click="savingsAmount = amount"
-                  >
-                    € {{ amount }}
-                  </button>
-                </div>
-
-                <div class="savings-grid">
-                  <article class="savings-card">
-                    <span class="savings-label">Stazione di riferimento</span>
-                    <strong class="savings-value savings-value--name">
-                      {{ savingsStation?.brand || 'In attesa' }}
-                    </strong>
-                    <span class="savings-note">
-                      {{ savingsStation?.name || 'Seleziona una zona per iniziare.' }}
-                    </span>
-                  </article>
-
-                  <article class="savings-card">
-                    <span class="savings-label">Prezzo medio in zona</span>
-                    <strong class="savings-value">
-                      {{ averagePrice != null ? `€ ${averagePrice.toFixed(3)}` : '—' }}
-                    </strong>
-                    <span class="savings-note">Calcolato sui distributori filtrati attorno a te.</span>
-                  </article>
-
-                  <article class="savings-card savings-card--accent">
-                    <span class="savings-label">Risparmio stimato</span>
-                    <strong class="savings-value">
-                      {{ estimatedSavings > 0 ? `€ ${estimatedSavings.toFixed(2)}` : '€ 0.00' }}
-                    </strong>
-                    <span class="savings-note">
-                      {{ estimatedLiters ? `${estimatedLiters.toFixed(1)} litri circa` : 'Attiva una ricerca per stimarlo.' }}
-                    </span>
-                  </article>
-                </div>
-              </section>
-
-              <section
-                ref="favoritesWrapRef"
-                class="favorites-section surface-enter surface-enter--delay-3"
-              >
-                <div class="favorites-head">
-                  <p class="section-kicker">Preferiti</p>
-                  <h2 class="section-title">Le tue soste salvate</h2>
-                  <p class="section-text">Aggiungi la stellina ai distributori che vuoi ritrovare subito.</p>
-                </div>
-
-                <div v-if="favoriteStations.length" class="favorites-grid">
-                  <StationCard
-                    v-for="station in favoriteStations"
-                    :key="`favorite-${station.id}`"
-                    :station="station"
-                    label="Preferito"
-                    type="best"
-                    :is-favorite="true"
-                    @select="(picked) => selectStation(picked, { scrollToMap: true })"
-                    @toggle-favorite="toggleFavorite"
-                  />
-                </div>
-
-                <div v-else class="favorites-empty">
-                  Non hai ancora salvato distributori, oppure i tuoi preferiti non rientrano nei filtri attuali.
-                </div>
-              </section>
-
-              <TopCards
                 v-if="cheapest || nearest || bestCompromise"
                 class="surface-enter surface-enter--delay-3"
-                :cheapest="cheapest"
-                :nearest="nearest"
-                :best-compromise="bestCompromise"
-                :favorite-ids="favoriteIds"
-                @select-station="(station) => selectStation(station, { scrollToMap: true })"
-                @toggle-favorite="toggleFavorite"
-              />
+              >
+                <TopCards
+                  :cheapest="cheapest"
+                  :nearest="nearest"
+                  :best-compromise="bestCompromise"
+                  :favorite-ids="favoriteIds"
+                  @select-station="(station) => selectStation(station, { scrollToMap: true })"
+                  @toggle-favorite="toggleFavorite"
+                />
+              </section>
 
-              <StationList
-                v-if="sorted.length"
-                class="surface-enter surface-enter--delay-4"
-                :stations="sorted"
-                :selected-station-id="selectedStation?.id ?? null"
-                :favorite-ids="favoriteIds"
-                @select-station="(station) => selectStation(station, { scrollToMap: true })"
-                @toggle-favorite="toggleFavorite"
-              />
+              <section v-if="sorted.length" class="surface-enter surface-enter--delay-4">
+                <StationList
+                  :stations="sorted"
+                  :selected-station-id="selectedStation?.id ?? null"
+                  :favorite-ids="favoriteIds"
+                  @select-station="(station) => selectStation(station, { scrollToMap: true })"
+                  @toggle-favorite="toggleFavorite"
+                />
+              </section>
 
               <div v-else class="empty-state surface-enter surface-enter--delay-3">
                 <FuelRadarLogo :size="56" />
@@ -428,20 +333,102 @@ function updateFilters(nextFilters) {
               </div>
             </div>
           </section>
+
+          <section v-else-if="currentPage === 'risparmi'" key="risparmi" class="dashboard dashboard--single">
+            <section class="savings-section surface-enter surface-enter--delay-2">
+              <div class="savings-head">
+                <div>
+                  <p class="section-kicker">Risparmi</p>
+                  <h2 class="section-title">Quanto ti conviene davvero</h2>
+                </div>
+                <p class="section-text">{{ savingsMessage }}</p>
+              </div>
+
+              <div class="savings-amounts" role="tablist" aria-label="Importo rifornimento">
+                <button
+                  v-for="amount in savingsAmountOptions"
+                  :key="amount"
+                  class="savings-pill"
+                  :class="{ 'savings-pill--active': savingsAmount === amount }"
+                  type="button"
+                  @click="savingsAmount = amount"
+                >
+                  € {{ amount }}
+                </button>
+              </div>
+
+              <div class="savings-grid">
+                <article class="savings-card">
+                  <span class="savings-label">Stazione di riferimento</span>
+                  <strong class="savings-value savings-value--name">
+                    {{ savingsStation?.brand || 'In attesa' }}
+                  </strong>
+                  <span class="savings-note">
+                    {{ savingsStation?.name || 'Seleziona una zona per iniziare.' }}
+                  </span>
+                </article>
+
+                <article class="savings-card">
+                  <span class="savings-label">Prezzo medio in zona</span>
+                  <strong class="savings-value">
+                    {{ averagePrice != null ? `€ ${averagePrice.toFixed(3)}` : '—' }}
+                  </strong>
+                  <span class="savings-note">Calcolato sui distributori filtrati attorno a te.</span>
+                </article>
+
+                <article class="savings-card savings-card--accent">
+                  <span class="savings-label">Risparmio stimato</span>
+                  <strong class="savings-value">
+                    {{ estimatedSavings > 0 ? `€ ${estimatedSavings.toFixed(2)}` : '€ 0.00' }}
+                  </strong>
+                  <span class="savings-note">
+                    {{ estimatedLiters ? `${estimatedLiters.toFixed(1)} litri circa` : 'Attiva una ricerca per stimarlo.' }}
+                  </span>
+                </article>
+              </div>
+            </section>
+          </section>
+
+          <section v-else key="preferiti" class="dashboard dashboard--single">
+            <section class="favorites-section surface-enter surface-enter--delay-2">
+              <div class="favorites-head">
+                <p class="section-kicker">Preferiti</p>
+                <h2 class="section-title">Le tue soste salvate</h2>
+                <p class="section-text">Aggiungi la stellina ai distributori che vuoi ritrovare subito.</p>
+              </div>
+
+              <div v-if="favoriteStations.length" class="favorites-grid">
+                <StationCard
+                  v-for="station in favoriteStations"
+                  :key="`favorite-${station.id}`"
+                  :station="station"
+                  label="Preferito"
+                  type="best"
+                  :is-favorite="true"
+                  @select="(picked) => selectStation(picked, { scrollToMap: true })"
+                  @toggle-favorite="toggleFavorite"
+                />
+              </div>
+
+              <div v-else class="favorites-empty">
+                Non hai ancora salvato distributori. Aggiungi la stellina dai risultati o dalla mappa.
+              </div>
+            </section>
+          </section>
         </Transition>
       </main>
     </div>
 
     <nav class="mobile-dock" aria-label="Navigazione mobile">
       <button
-        v-for="section in mobileSections"
-        :key="section.id"
+        v-for="page in pages"
+        :key="page.id"
         class="mobile-dock__item"
-        :class="{ 'mobile-dock__item--active': activeMobileSection === section.id }"
+        :class="{ 'mobile-dock__item--active': currentPage === page.id }"
         type="button"
-        @click="scrollToMobileSection(section.id)"
+        @click="scrollToMobileSection(page.id)"
       >
-        {{ section.label }}
+        {{ page.label }}
       </button>
     </nav>
   </div>
@@ -530,7 +517,51 @@ function updateFilters(nextFilters) {
 .hero-stack {
   display: grid;
   gap: 18px;
-  margin-bottom: 34px;
+  margin-bottom: 20px;
+}
+
+.page-switcher {
+  width: fit-content;
+  margin: 0 auto 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 999px;
+  background: rgba(11, 14, 19, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 18px 34px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(16px);
+}
+
+.page-switcher__item {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background var(--transition),
+    color var(--transition),
+    transform var(--transition),
+    box-shadow var(--transition);
+}
+
+.page-switcher__item:hover {
+  transform: translateY(-1px);
+  color: #fff6ef;
+}
+
+.page-switcher__item--active {
+  background: linear-gradient(135deg, #ff9c52, #ff7a1a 55%, #d95504);
+  color: white;
+  box-shadow: 0 12px 22px rgba(255, 122, 26, 0.18);
 }
 
 .map-wrap,
@@ -549,6 +580,10 @@ function updateFilters(nextFilters) {
 .dashboard {
   display: grid;
   gap: 34px;
+}
+
+.dashboard--single {
+  gap: 0;
 }
 
 .results-wrap {
@@ -864,7 +899,19 @@ function updateFilters(nextFilters) {
 
   .hero-stack {
     gap: 16px;
-    margin-bottom: 26px;
+    margin-bottom: 18px;
+  }
+
+  .page-switcher {
+    width: 100%;
+    margin-bottom: 24px;
+    justify-content: space-between;
+  }
+
+  .page-switcher__item {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0 12px;
   }
 
   .map-wrap,
