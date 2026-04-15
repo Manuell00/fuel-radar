@@ -19,9 +19,15 @@ export function useStations(userPosition) {
   const liveReady = ref(false)
 
   function getApplicablePrice(station) {
-    const fuelTypes = filters.value.fuelType === 'tutti'
-      ? ['benzina', 'diesel', 'gpl']
-      : [filters.value.fuelType]
+    const shouldPreferDefaultBenzina =
+      filters.value.fuelType === 'tutti' &&
+      filters.value.mode === 'tutti'
+
+    const fuelTypes = shouldPreferDefaultBenzina
+      ? ['benzina']
+      : filters.value.fuelType === 'tutti'
+        ? ['benzina', 'diesel', 'gpl']
+        : [filters.value.fuelType]
 
     let best = null
 
