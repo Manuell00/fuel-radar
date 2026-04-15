@@ -13,8 +13,7 @@ const emit = defineEmits(['select-station'])
 <template>
   <section class="top-cards">
     <div class="section-head">
-      <span class="section-kicker">In evidenza</span>
-      <h2 class="section-title">Le tre scorciatoie più utili per scegliere il distributore giusto.</h2>
+      <h2 class="section-title">In evidenza</h2>
     </div>
 
     <div class="cards-grid">
@@ -51,20 +50,14 @@ const emit = defineEmits(['select-station'])
 
 .section-head {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 4px;
-}
-
-.section-kicker {
-  color: rgba(255, 189, 147, 0.86);
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  justify-items: center;
+  text-align: center;
 }
 
 .section-title {
-  font-size: 1.18rem;
+  font-size: 1.28rem;
   font-weight: 800;
   letter-spacing: -0.04em;
   color: #fff6ef;
