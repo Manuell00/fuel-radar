@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import AppHeader from './components/AppHeader.vue'
 import FilterBar from './components/FilterBar.vue'
 import FuelRadarLogo from './components/FuelRadarLogo.vue'
@@ -14,7 +14,22 @@ import { useStations } from './composables/useStations.js'
 const manualLocation = ref(null)
 const selectedStation = ref(null)
 const dismissedBanner = ref('')
+const heroStackRef = ref(null)
+const filtersWrapRef = ref(null)
 const mapWrapRef = ref(null)
+const resultsWrapRef = ref(null)
+const showSplash = ref(true)
+const splashLeaving = ref(false)
+const activeMobileSection = ref('home')
+const mobileSections = [
+  { id: 'home', label: 'Home', refName: 'heroStackRef' },
+  { id: 'filtri', label: 'Filtri', refName: 'filtersWrapRef' },
+  { id: 'radar', label: 'Radar', refName: 'mapWrapRef' },
+  { id: 'risultati', label: 'Risultati', refName: 'resultsWrapRef' },
+]
+
+let splashFadeTimer = null
+let splashHideTimer = null
 
 const {
   position,
@@ -81,7 +96,25 @@ watch(bannerMessage, (nextMessage, previousMessage) => {
 })
 
 onMounted(async () => {
+  splashFadeTimer = window.setTimeout(() => {
+    splashLeaving.value = true
+  }, 1050)
+
+  splashHideTimer = window.setTimeout(() => {
+    showSplash.value = false
+  }, 1550)
+
+  window.addEventListener('scroll', syncActiveMobileSection, { passive: true })
+  window.addEventListener('resize', syncActiveMobileSection, { passive: true })
   await requestLocation()
+  syncActiveMobileSection()
+})
+
+onUnmounted(() => {
+  if (splashFadeTimer) window.clearTimeout(splashFadeTimer)
+  if (splashHideTimer) window.clearTimeout(splashHideTimer)
+  window.removeEventListener('scroll', syncActiveMobileSection)
+  window.removeEventListener('resize', syncActiveMobileSection)
 })
 
 function handleSelectLocation(location) {
@@ -123,10 +156,55 @@ async function selectStation(station, options = {}) {
     block: 'start',
   })
 }
+
+function resolveSectionElement(sectionId) {
+  if (sectionId === 'home') return heroStackRef.value
+  if (sectionId === 'filtri') return filtersWrapRef.value
+  if (sectionId === 'radar') return mapWrapRef.value
+  if (sectionId === 'risultati') return resultsWrapRef.value
+  return null
+}
+
+function syncActiveMobileSection() {
+  const viewportAnchor = window.innerHeight * 0.32
+
+  let current = 'home'
+  mobileSections.forEach((section) => {
+    const el = resolveSectionElement(section.id)
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    if (rect.top <= viewportAnchor) {
+      current = section.id
+    }
+  })
+
+  activeMobileSection.value = current
+}
+
+async function scrollToMobileSection(sectionId) {
+  const target = resolveSectionElement(sectionId)
+  if (!target) return
+
+  activeMobileSection.value = sectionId
+  await nextTick()
+  target.scrollIntoView({
+    behavior: 'smooth',
+    block: 'start',
+  })
+}
 </script>
 
 <template>
   <div class="app-shell">
+    <Transition name="splash-fade">
+      <div v-if="showSplash" class="splash-screen" :class="{ 'splash-screen--leaving': splashLeaving }">
+        <div class="splash-mark">
+          <h1 class="splash-title">FUEL RADAR</h1>
+          <FuelRadarLogo :size="72" />
+        </div>
+      </div>
+    </Transition>
+
     <div class="page-aurora" aria-hidden="true"></div>
     <div class="page-grid" aria-hidden="true"></div>
 
@@ -146,7 +224,7 @@ async function selectStation(station, options = {}) {
       </Transition>
 
       <main class="main-shell">
-        <section class="hero-stack surface-enter">
+        <section ref="heroStackRef" class="hero-stack surface-enter">
           <LocationSearch
             :manual-location="manualLocation"
             :current-position="position"
@@ -155,7 +233,7 @@ async function selectStation(station, options = {}) {
             @retry-geo="useCurrentLocation"
           />
 
-          <div class="filters-wrap surface-enter surface-enter--delay-1">
+          <div ref="filtersWrapRef" class="filters-wrap surface-enter surface-enter--delay-1">
             <FilterBar v-model:filters="filters" />
           </div>
         </section>
@@ -180,7 +258,7 @@ async function selectStation(station, options = {}) {
               />
             </div>
 
-            <div class="results-wrap">
+            <div ref="resultsWrapRef" class="results-wrap">
               <TopCards
                 v-if="cheapest || nearest || bestCompromise"
                 class="surface-enter surface-enter--delay-3"
@@ -210,6 +288,19 @@ async function selectStation(station, options = {}) {
         </Transition>
       </main>
     </div>
+
+    <nav class="mobile-dock" aria-label="Navigazione mobile">
+      <button
+        v-for="section in mobileSections"
+        :key="section.id"
+        class="mobile-dock__item"
+        :class="{ 'mobile-dock__item--active': activeMobileSection === section.id }"
+        type="button"
+        @click="scrollToMobileSection(section.id)"
+      >
+        {{ section.label }}
+      </button>
+    </nav>
   </div>
 </template>
 
@@ -218,6 +309,42 @@ async function selectStation(station, options = {}) {
   position: relative;
   min-height: 100dvh;
   overflow: hidden;
+}
+
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at center, rgba(255, 132, 41, 0.16), transparent 24%),
+    linear-gradient(180deg, #040507 0%, #090b10 100%);
+}
+
+.splash-screen--leaving .splash-mark {
+  transform: translateY(-6px) scale(1.02);
+  opacity: 0;
+}
+
+.splash-mark {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: transform 420ms ease, opacity 420ms ease;
+}
+
+.splash-title {
+  font-size: clamp(2.4rem, 8vw, 4.8rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+  color: #fff8f1;
+  -webkit-text-stroke: 1px rgba(255, 166, 99, 0.34);
+  text-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.28),
+    0 0 26px rgba(255, 122, 26, 0.14);
+  animation: splash-rise 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .page-aurora {
@@ -367,8 +494,29 @@ async function selectStation(station, options = {}) {
   transform: translateY(10px);
 }
 
+.splash-fade-enter-active,
+.splash-fade-leave-active {
+  transition: opacity 320ms ease;
+}
+
+.splash-fade-enter-from,
+.splash-fade-leave-to {
+  opacity: 0;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+@keyframes splash-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes surface-rise {
@@ -382,10 +530,54 @@ async function selectStation(station, options = {}) {
   }
 }
 
+.mobile-dock {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 12;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  width: min(calc(100% - 24px), 440px);
+  padding: 8px;
+  border-radius: 999px;
+  background: rgba(12, 15, 20, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 18px 34px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(16px);
+}
+
+.mobile-dock__item {
+  flex: 1 1 0;
+  min-height: 46px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background var(--transition),
+    color var(--transition),
+    transform var(--transition),
+    box-shadow var(--transition);
+}
+
+.mobile-dock__item--active {
+  background: linear-gradient(135deg, #ff9c52, #ff7a1a 55%, #d95504);
+  color: white;
+  box-shadow: 0 12px 22px rgba(255, 122, 26, 0.2);
+}
+
 @media (max-width: 720px) {
   .main-shell {
     width: min(100%, calc(100% - 20px));
-    padding-bottom: 44px;
+    padding-bottom: 108px;
   }
 
   .hero-stack {
@@ -406,9 +598,21 @@ async function selectStation(station, options = {}) {
   .results-wrap {
     gap: 22px;
   }
+
+  .mobile-dock {
+    display: flex;
+  }
 }
 
 @media (max-width: 560px) {
+  .splash-mark {
+    gap: 12px;
+  }
+
+  .splash-title {
+    font-size: clamp(2rem, 11vw, 3rem);
+  }
+
   .loading-panel {
     min-height: 300px;
     border-radius: 24px;
@@ -417,6 +621,17 @@ async function selectStation(station, options = {}) {
   .empty-state {
     min-height: 210px;
     padding: 28px 20px;
+  }
+
+  .mobile-dock {
+    bottom: 12px;
+    width: calc(100% - 18px);
+    padding: 7px;
+  }
+
+  .mobile-dock__item {
+    min-height: 42px;
+    font-size: 0.82rem;
   }
 }
 </style>
