@@ -359,11 +359,14 @@ watch(
 .map-title {
   font-size: clamp(2rem, 5vw, 3.1rem);
   font-weight: 800;
-  letter-spacing: -0.06em;
-  color: #fff6ef;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  color: #fff8f1;
+  -webkit-text-stroke: 0.9px rgba(255, 166, 99, 0.3);
   text-shadow:
-    0 10px 24px rgba(0, 0, 0, 0.28),
-    0 0 26px rgba(255, 122, 26, 0.12);
+    0 12px 28px rgba(0, 0, 0, 0.24),
+    0 0 22px rgba(255, 122, 26, 0.1),
+    0 0 2px rgba(255, 214, 181, 0.2);
 }
 
 .map-subtitle {
@@ -394,7 +397,9 @@ watch(
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 30px 60px rgba(0, 0, 0, 0.24);
+    inset 0 0 0 1px rgba(255, 184, 127, 0.08),
+    0 30px 60px rgba(0, 0, 0, 0.24),
+    0 0 0 1px rgba(255, 147, 74, 0.08);
 }
 
 .map-stage::before {
@@ -411,9 +416,12 @@ watch(
 .map-stage::after {
   content: '';
   position: absolute;
-  inset: auto 0 0;
-  height: 120px;
-  background: linear-gradient(180deg, transparent, rgba(7, 8, 11, 0.22));
+  inset: 1px;
+  border-radius: 29px;
+  border: 1px solid rgba(255, 191, 139, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 0 22px rgba(255, 140, 57, 0.06);
   pointer-events: none;
   z-index: 4;
 }

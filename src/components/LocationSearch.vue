@@ -423,11 +423,14 @@ onUnmounted(() => {
 .search-title {
   font-size: clamp(2rem, 5vw, 3rem);
   font-weight: 800;
-  color: #ffffff;
-  letter-spacing: -0.06em;
+  color: #fff8f1;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  -webkit-text-stroke: 0.9px rgba(255, 166, 99, 0.3);
   text-shadow:
-    0 10px 24px rgba(0, 0, 0, 0.28),
-    0 0 26px rgba(255, 122, 26, 0.12);
+    0 12px 28px rgba(0, 0, 0, 0.24),
+    0 0 22px rgba(255, 122, 26, 0.1),
+    0 0 2px rgba(255, 214, 181, 0.2);
 }
 
 .search-subtitle {
