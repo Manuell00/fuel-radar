@@ -10,10 +10,11 @@ const props = defineProps({
   cheapest: { type: Object, default: null },
   nearest: { type: Object, default: null },
   bestCompromise: { type: Object, default: null },
-  radius: { type: Number, default: 12 },
+  filters: { type: Object, required: true },
+  radius: { type: Number, default: 5 },
 })
 
-const emit = defineEmits(['select-station', 'toggle-favorite'])
+const emit = defineEmits(['select-station', 'toggle-favorite', 'update:filters'])
 
 const mapEl = ref(null)
 
@@ -27,6 +28,27 @@ const fuelNames = {
   benzina: 'Benzina',
   diesel: 'Diesel',
   gpl: 'GPL',
+}
+
+const fuelOptions = [
+  { value: 'tutti', label: 'Tutti' },
+  { value: 'benzina', label: 'Benzina' },
+  { value: 'diesel', label: 'Diesel' },
+  { value: 'gpl', label: 'GPL' },
+]
+
+const modeOptions = [
+  { value: 'tutti', label: 'Tutti' },
+  { value: 'self', label: 'Self' },
+  { value: 'servito', label: 'Servito' },
+]
+
+function updateFilter(key, value) {
+  emit('update:filters', { ...props.filters, [key]: value })
+}
+
+function sliderPct(value) {
+  return `${((value - 1) / 49) * 100}%`
 }
 
 function getMarkerType(station) {
@@ -351,6 +373,57 @@ watch(
       </p>
     </div>
 
+    <div class="map-filters">
+      <div class="map-filter-group">
+        <span class="map-filter-label">Carburante</span>
+        <div class="map-filter-chips">
+          <button
+            v-for="option in fuelOptions"
+            :key="option.value"
+            class="map-chip"
+            :class="{ 'map-chip--active': filters.fuelType === option.value }"
+            type="button"
+            @click="updateFilter('fuelType', option.value)"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+      </div>
+
+      <div class="map-filter-group">
+        <span class="map-filter-label">Modalità</span>
+        <div class="map-filter-chips">
+          <button
+            v-for="option in modeOptions"
+            :key="option.value"
+            class="map-chip"
+            :class="{ 'map-chip--active': filters.mode === option.value }"
+            type="button"
+            @click="updateFilter('mode', option.value)"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+      </div>
+
+      <div class="map-filter-group map-filter-group--range">
+        <div class="map-range-head">
+          <span class="map-filter-label">Raggio</span>
+          <strong>{{ filters.radius }} km</strong>
+        </div>
+        <input
+          class="map-slider"
+          type="range"
+          min="1"
+          max="50"
+          step="1"
+          :value="filters.radius"
+          :style="{ '--pct': sliderPct(filters.radius) }"
+          @input="updateFilter('radius', Number($event.target.value))"
+        />
+      </div>
+    </div>
+
     <div class="map-stage">
       <div class="map-orb map-orb--left" aria-hidden="true"></div>
       <div class="map-orb map-orb--right" aria-hidden="true"></div>
@@ -369,7 +442,7 @@ watch(
 .map-view {
   padding: 28px 24px;
   display: grid;
-  gap: 24px;
+  gap: 18px;
 }
 
 .map-copy {
@@ -397,6 +470,118 @@ watch(
   max-width: 52ch;
   color: rgba(255, 255, 255, 0.66);
   line-height: 1.6;
+}
+
+.map-filters {
+  display: grid;
+  grid-template-columns: 1.25fr 1.05fr 0.9fr;
+  gap: 12px;
+}
+
+.map-filter-group {
+  padding: 16px 16px 14px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.018)),
+    rgba(14, 17, 23, 0.74);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 18px 30px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 12px;
+}
+
+.map-filter-group--range {
+  align-content: center;
+}
+
+.map-filter-label {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.map-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.map-chip {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.75);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform var(--transition),
+    border-color var(--transition),
+    background var(--transition),
+    color var(--transition);
+}
+
+.map-chip:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 122, 26, 0.26);
+}
+
+.map-chip--active {
+  background: linear-gradient(135deg, #ff9c52, #ff7a1a 55%, #d95504);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 12px 22px rgba(255, 122, 26, 0.18);
+}
+
+.map-range-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #fff4eb;
+  font-weight: 700;
+}
+
+.map-slider {
+  width: 100%;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      90deg,
+      #ff7a1a 0,
+      #ff7a1a var(--pct),
+      rgba(255, 255, 255, 0.12) var(--pct),
+      rgba(255, 255, 255, 0.12) 100%
+    );
+  outline: none;
+  cursor: pointer;
+}
+
+.map-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid white;
+  background: #ff7a1a;
+  box-shadow: 0 10px 18px rgba(255, 122, 26, 0.26);
+}
+
+.map-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid white;
+  background: #ff7a1a;
+  box-shadow: 0 10px 18px rgba(255, 122, 26, 0.26);
 }
 
 @keyframes map-copy-in {
@@ -587,6 +772,10 @@ watch(
     line-height: 1.55;
   }
 
+  .map-filters {
+    grid-template-columns: 1fr;
+  }
+
   .map-stage,
   .map-canvas {
     min-height: 360px;
@@ -622,6 +811,21 @@ watch(
   .map-view {
     padding: 20px 16px;
     gap: 18px;
+  }
+
+  .map-filter-group {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .map-filter-chips {
+    width: 100%;
+  }
+
+  .map-chip {
+    flex: 1 1 78px;
+    min-width: 0;
+    padding: 0 10px;
   }
 
   .map-stage,

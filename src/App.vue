@@ -1,7 +1,6 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import AppHeader from './components/AppHeader.vue'
-import FilterBar from './components/FilterBar.vue'
 import FuelRadarLogo from './components/FuelRadarLogo.vue'
 import LocationBanner from './components/LocationBanner.vue'
 import LocationSearch from './components/LocationSearch.vue'
@@ -16,8 +15,8 @@ const manualLocation = ref(null)
 const selectedStation = ref(null)
 const dismissedBanner = ref('')
 const heroStackRef = ref(null)
-const filtersWrapRef = ref(null)
 const mapWrapRef = ref(null)
+const savingsWrapRef = ref(null)
 const favoritesWrapRef = ref(null)
 const resultsWrapRef = ref(null)
 const showSplash = ref(true)
@@ -25,6 +24,7 @@ const splashLeaving = ref(false)
 const favoriteIds = ref([])
 const activeMobileSection = ref('home')
 const favoriteStorageKey = 'fuel-radar-favorites'
+const savingsAmount = ref(20)
 
 let splashFadeTimer = null
 let splashHideTimer = null
@@ -46,6 +46,7 @@ const effectivePosition = computed(() => {
 
 const {
   filters,
+  filtered,
   sorted,
   cheapest,
   nearest,
@@ -87,19 +88,35 @@ const bannerMessage = computed(() => {
 
 const showBanner = computed(() => bannerMessage.value && dismissedBanner.value !== bannerMessage.value)
 const favoriteStations = computed(() => sorted.value.filter((station) => favoriteIds.value.includes(station.id)))
-const mobileSections = computed(() => {
-  const sections = [
-    { id: 'home', label: 'Home' },
-    { id: 'filtri', label: 'Filtri' },
-    { id: 'radar', label: 'Radar' },
-  ]
-
-  if (favoriteIds.value.length) {
-    sections.push({ id: 'preferiti', label: 'Preferiti' })
+const mobileSections = computed(() => ([
+  { id: 'home', label: 'Home' },
+  { id: 'risparmi', label: 'Risparmi' },
+  { id: 'preferiti', label: 'Preferiti' },
+]))
+const savingsAmountOptions = [5, 10, 20, 50, 100]
+const averagePrice = computed(() => {
+  if (!filtered.value.length) return null
+  return filtered.value.reduce((total, station) => total + station.price, 0) / filtered.value.length
+})
+const savingsStation = computed(() => selectedStation.value ?? cheapest.value ?? null)
+const savingsPerLiter = computed(() => {
+  if (averagePrice.value == null || !savingsStation.value) return 0
+  return Math.max(0, averagePrice.value - savingsStation.value.price)
+})
+const estimatedLiters = computed(() => (
+  savingsStation.value?.price ? savingsAmount.value / savingsStation.value.price : 0
+))
+const estimatedSavings = computed(() => savingsPerLiter.value * estimatedLiters.value)
+const savingsMessage = computed(() => {
+  if (!savingsStation.value || averagePrice.value == null) {
+    return 'Attiva la posizione o cerca un indirizzo per confrontare il distributore migliore con il prezzo medio vicino a te.'
   }
 
-  sections.push({ id: 'risultati', label: 'Risultati' })
-  return sections
+  if (estimatedSavings.value <= 0) {
+    return 'Il distributore selezionato e la media di zona sono praticamente allineati.'
+  }
+
+  return `Con ${savingsAmount.value} euro di rifornimento risparmi circa € ${estimatedSavings.value.toFixed(2)} rispetto alla media locale.`
 })
 
 watch(bannerMessage, (nextMessage, previousMessage) => {
@@ -183,7 +200,7 @@ async function selectStation(station, options = {}) {
 
 function resolveSectionElement(sectionId) {
   if (sectionId === 'home') return heroStackRef.value
-  if (sectionId === 'filtri') return filtersWrapRef.value
+  if (sectionId === 'risparmi') return savingsWrapRef.value
   if (sectionId === 'radar') return mapWrapRef.value
   if (sectionId === 'preferiti') return favoritesWrapRef.value
   if (sectionId === 'risultati') return resultsWrapRef.value
@@ -226,6 +243,10 @@ function toggleFavorite(station) {
 
   favoriteIds.value = [...favoriteIds.value, station.id]
 }
+
+function updateFilters(nextFilters) {
+  filters.value = nextFilters
+}
 </script>
 
 <template>
@@ -266,10 +287,6 @@ function toggleFavorite(station) {
             @clear-manual="clearManualLocation"
             @retry-geo="useCurrentLocation"
           />
-
-          <div ref="filtersWrapRef" class="filters-wrap surface-enter surface-enter--delay-1">
-            <FilterBar v-model:filters="filters" />
-          </div>
         </section>
 
         <Transition name="content-fade" mode="out-in">
@@ -288,21 +305,79 @@ function toggleFavorite(station) {
                 :cheapest="cheapest"
                 :nearest="nearest"
                 :best-compromise="bestCompromise"
+                :filters="filters"
                 :radius="filters.radius"
                 @select-station="selectStation"
                 @toggle-favorite="toggleFavorite"
+                @update:filters="updateFilters"
               />
             </div>
 
             <div ref="resultsWrapRef" class="results-wrap">
               <section
-                v-if="favoriteIds.length"
+                ref="savingsWrapRef"
+                class="savings-section surface-enter surface-enter--delay-3"
+              >
+                <div class="savings-head">
+                  <div>
+                    <p class="section-kicker">Risparmi</p>
+                    <h2 class="section-title">Quanto ti conviene davvero</h2>
+                  </div>
+                  <p class="section-text">{{ savingsMessage }}</p>
+                </div>
+
+                <div class="savings-amounts" role="tablist" aria-label="Importo rifornimento">
+                  <button
+                    v-for="amount in savingsAmountOptions"
+                    :key="amount"
+                    class="savings-pill"
+                    :class="{ 'savings-pill--active': savingsAmount === amount }"
+                    type="button"
+                    @click="savingsAmount = amount"
+                  >
+                    € {{ amount }}
+                  </button>
+                </div>
+
+                <div class="savings-grid">
+                  <article class="savings-card">
+                    <span class="savings-label">Stazione di riferimento</span>
+                    <strong class="savings-value savings-value--name">
+                      {{ savingsStation?.brand || 'In attesa' }}
+                    </strong>
+                    <span class="savings-note">
+                      {{ savingsStation?.name || 'Seleziona una zona per iniziare.' }}
+                    </span>
+                  </article>
+
+                  <article class="savings-card">
+                    <span class="savings-label">Prezzo medio in zona</span>
+                    <strong class="savings-value">
+                      {{ averagePrice != null ? `€ ${averagePrice.toFixed(3)}` : '—' }}
+                    </strong>
+                    <span class="savings-note">Calcolato sui distributori filtrati attorno a te.</span>
+                  </article>
+
+                  <article class="savings-card savings-card--accent">
+                    <span class="savings-label">Risparmio stimato</span>
+                    <strong class="savings-value">
+                      {{ estimatedSavings > 0 ? `€ ${estimatedSavings.toFixed(2)}` : '€ 0.00' }}
+                    </strong>
+                    <span class="savings-note">
+                      {{ estimatedLiters ? `${estimatedLiters.toFixed(1)} litri circa` : 'Attiva una ricerca per stimarlo.' }}
+                    </span>
+                  </article>
+                </div>
+              </section>
+
+              <section
                 ref="favoritesWrapRef"
                 class="favorites-section surface-enter surface-enter--delay-3"
               >
                 <div class="favorites-head">
-                  <h2 class="favorites-title">Preferiti</h2>
-                  <p class="favorites-subtitle">I distributori che hai salvato con la stellina.</p>
+                  <p class="section-kicker">Preferiti</p>
+                  <h2 class="section-title">Le tue soste salvate</h2>
+                  <p class="section-text">Aggiungi la stellina ai distributori che vuoi ritrovare subito.</p>
                 </div>
 
                 <div v-if="favoriteStations.length" class="favorites-grid">
@@ -319,7 +394,7 @@ function toggleFavorite(station) {
                 </div>
 
                 <div v-else class="favorites-empty">
-                  I tuoi preferiti non rientrano nei filtri attuali o nella zona selezionata.
+                  Non hai ancora salvato distributori, oppure i tuoi preferiti non rientrano nei filtri attuali.
                 </div>
               </section>
 
@@ -454,11 +529,10 @@ function toggleFavorite(station) {
 
 .hero-stack {
   display: grid;
-  gap: 26px;
+  gap: 18px;
   margin-bottom: 34px;
 }
 
-.filters-wrap,
 .map-wrap,
 .empty-state {
   border-radius: 30px;
@@ -482,35 +556,130 @@ function toggleFavorite(station) {
   gap: 30px;
 }
 
-.favorites-section {
+.favorites-section,
+.savings-section {
   display: grid;
   gap: 20px;
 }
 
-.favorites-head {
+.favorites-head,
+.savings-head {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   justify-items: center;
   text-align: center;
 }
 
-.favorites-title {
-  font-size: 1.28rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+.section-kicker {
+  color: rgba(255, 183, 133, 0.8);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: #fff8f1;
-  -webkit-text-stroke: 0.9px rgba(255, 166, 99, 0.3);
-  text-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.24),
-    0 0 22px rgba(255, 122, 26, 0.1),
-    0 0 2px rgba(255, 214, 181, 0.2);
 }
 
-.favorites-subtitle,
+.section-title {
+  font-size: 1.28rem;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+  color: #fff8f1;
+  -webkit-text-stroke: 0.7px rgba(255, 166, 99, 0.18);
+}
+
+.section-text,
 .favorites-empty {
   color: rgba(255, 255, 255, 0.64);
   line-height: 1.6;
+}
+
+.savings-amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.savings-pill {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.76);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform var(--transition),
+    border-color var(--transition),
+    background var(--transition),
+    color var(--transition),
+    box-shadow var(--transition);
+}
+
+.savings-pill:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 122, 26, 0.24);
+}
+
+.savings-pill--active {
+  background: linear-gradient(135deg, #ff9c52, #ff7a1a 55%, #d95504);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 12px 24px rgba(255, 122, 26, 0.18);
+}
+
+.savings-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.savings-card {
+  padding: 20px 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02)),
+    rgba(14, 17, 24, 0.78);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 18px 34px rgba(0, 0, 0, 0.16);
+  display: grid;
+  gap: 10px;
+  text-align: center;
+}
+
+.savings-card--accent {
+  border-color: rgba(255, 147, 74, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 150, 78, 0.12), rgba(255, 255, 255, 0.03)),
+    rgba(17, 19, 25, 0.84);
+}
+
+.savings-label {
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.savings-value {
+  color: #fff7f0;
+  font-size: clamp(1.5rem, 3vw, 2.3rem);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+}
+
+.savings-value--name {
+  font-size: clamp(1.15rem, 2.4vw, 1.65rem);
+}
+
+.savings-note {
+  color: rgba(255, 255, 255, 0.62);
+  line-height: 1.55;
 }
 
 .favorites-grid {
@@ -694,11 +863,10 @@ function toggleFavorite(station) {
   }
 
   .hero-stack {
-    gap: 20px;
+    gap: 16px;
     margin-bottom: 26px;
   }
 
-  .filters-wrap,
   .map-wrap,
   .empty-state {
     border-radius: 24px;
@@ -713,6 +881,10 @@ function toggleFavorite(station) {
   }
 
   .favorites-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .savings-grid {
     grid-template-columns: 1fr;
   }
 

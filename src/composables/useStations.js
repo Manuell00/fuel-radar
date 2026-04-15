@@ -9,7 +9,7 @@ export function useStations(userPosition) {
   const filters = ref({
     fuelType: 'tutti',
     mode: 'tutti',
-    radius: 12,
+    radius: 5,
   })
 
   const rawStations = ref([])
