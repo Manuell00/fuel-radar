@@ -260,6 +260,7 @@ onMounted(async () => {
     center,
     zoom: 12,
     zoomControl: true,
+    scrollWheelZoom: false,
   })
 
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
