@@ -17,12 +17,6 @@ defineProps({
             <FuelRadarLogo :size="78" />
 
             <div class="brand-copy">
-              <div class="brand-topline">
-                <span class="status-pill" :class="liveReady ? 'status-pill--live' : 'status-pill--fallback'">
-                  {{ liveReady ? 'MIMIT Live' : 'Fallback' }}
-                </span>
-              </div>
-
               <h1 class="title">Fuel Radar</h1>
             </div>
           </div>
@@ -104,35 +98,6 @@ defineProps({
   gap: 8px;
   justify-items: start;
   max-width: 760px;
-}
-
-.brand-topline {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  width: 100%;
-}
-
-.status-pill {
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.status-pill--live {
-  background: rgba(48, 211, 157, 0.12);
-  color: #8ae8c5;
-}
-
-.status-pill--fallback {
-  background: rgba(255, 122, 26, 0.12);
-  color: #ffc193;
 }
 
 .title {

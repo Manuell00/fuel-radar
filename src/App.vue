@@ -212,9 +212,12 @@ function selectStation(station) {
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(circle at top center, rgba(255, 126, 33, 0.22), transparent 30%),
-    radial-gradient(circle at 15% 10%, rgba(255, 160, 66, 0.11), transparent 22%),
-    radial-gradient(circle at 85% 20%, rgba(255, 122, 26, 0.14), transparent 24%),
+    radial-gradient(circle at top center, rgba(255, 126, 33, 0.18), transparent 24%),
+    radial-gradient(circle at 14% 12%, rgba(255, 160, 66, 0.1), transparent 20%),
+    radial-gradient(circle at 86% 18%, rgba(255, 122, 26, 0.12), transparent 22%),
+    radial-gradient(circle at 50% 42%, rgba(255, 132, 41, 0.12), transparent 30%),
+    radial-gradient(circle at 18% 72%, rgba(255, 153, 77, 0.09), transparent 24%),
+    radial-gradient(circle at 82% 88%, rgba(255, 122, 26, 0.1), transparent 26%),
     linear-gradient(180deg, #050608 0%, #090b10 28%, #0d1016 60%, #11141c 100%);
   pointer-events: none;
 }
