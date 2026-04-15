@@ -15,6 +15,7 @@ const manualLocation = ref(null)
 const selectedStation = ref(null)
 const dismissedBanner = ref('')
 const mapWrapRef = ref(null)
+const locationSearchRef = ref(null)
 const showSplash = ref(true)
 const splashLeaving = ref(false)
 const favoriteIds = ref([])
@@ -220,6 +221,27 @@ function toggleFavorite(station) {
 function updateFilters(nextFilters) {
   filters.value = nextFilters
 }
+
+async function handleHeroPrimaryAction() {
+  currentPage.value = 'home'
+  manualLocation.value = null
+  selectedStation.value = null
+  await requestLocation()
+  await nextTick()
+  mapWrapRef.value?.scrollIntoView({
+    behavior: 'smooth',
+    block: 'start',
+  })
+}
+
+async function handleHeroSecondaryAction() {
+  currentPage.value = 'home'
+  await nextTick()
+  locationSearchRef.value?.scrollIntoView({
+    behavior: 'smooth',
+    block: 'start',
+  })
+}
 </script>
 
 <template>
@@ -240,6 +262,8 @@ function updateFilters(nextFilters) {
       <AppHeader
         :station-count="stationCount"
         :search-mode="searchMode"
+        @primary-action="handleHeroPrimaryAction"
+        @secondary-action="handleHeroSecondaryAction"
       />
 
       <Transition name="banner-fade">
@@ -252,7 +276,7 @@ function updateFilters(nextFilters) {
       </Transition>
 
       <main class="main-shell">
-        <section class="hero-stack surface-enter">
+        <section ref="locationSearchRef" class="hero-stack surface-enter">
           <LocationSearch
             :manual-location="manualLocation"
             :current-position="position"
