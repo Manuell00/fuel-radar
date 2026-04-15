@@ -95,9 +95,12 @@ function estimateMinutes(distanceKm) {
   list-style: none;
   display: grid;
   gap: 12px;
+  counter-reset: station-rank;
 }
 
 .list-item {
+  position: relative;
+  overflow: hidden;
   padding: 14px;
   border-radius: 22px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -111,11 +114,26 @@ function estimateMinutes(distanceKm) {
   transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
 }
 
+.list-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 8%, rgba(255, 255, 255, 0.05) 48%, transparent 82%);
+  transform: translateX(-120%);
+  transition: transform 720ms ease;
+  pointer-events: none;
+}
+
 .list-item:hover,
 .list-item--active {
   transform: translateY(-1px);
   border-color: rgba(255, 122, 26, 0.22);
   box-shadow: 0 22px 42px rgba(0, 0, 0, 0.22);
+}
+
+.list-item:hover::before,
+.list-item--active::before {
+  transform: translateX(120%);
 }
 
 .item-main {

@@ -50,7 +50,6 @@ const loadingLabel = computed(() => (
     : 'Caricamento...'
 ))
 
-const visibleStations = computed(() => sorted.value.slice(0, 60))
 const stationCount = computed(() => sorted.value.length)
 
 const bannerMessage = computed(() => {
@@ -159,7 +158,7 @@ function selectStation(station) {
             <div class="map-wrap surface-enter surface-enter--delay-2">
               <MapView
                 :user-position="effectivePosition"
-                :stations="visibleStations"
+                :stations="sorted"
                 :selected-station="selectedStation"
                 :cheapest="cheapest"
                 :nearest="nearest"

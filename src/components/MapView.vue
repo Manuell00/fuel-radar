@@ -353,6 +353,7 @@ watch(
 }
 
 .map-stage {
+  position: relative;
   min-height: 460px;
   border-radius: 24px;
   overflow: hidden;
@@ -361,6 +362,27 @@ watch(
     rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.map-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 122, 26, 0.12), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 30%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.map-stage::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 84px;
+  background: linear-gradient(180deg, transparent, rgba(7, 8, 11, 0.1));
+  pointer-events: none;
+  z-index: 2;
 }
 
 .map-canvas {

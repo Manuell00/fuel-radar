@@ -30,8 +30,7 @@ function sliderPct(value) {
 <template>
   <section class="filter-bar">
     <div class="filter-copy">
-      <span class="filter-kicker">Filtri radar</span>
-      <h2 class="filter-title">Affina carburante, modalità e raggio senza spezzare il flusso della ricerca.</h2>
+      <h2 class="filter-title">Filtri Radar</h2>
     </div>
 
     <div class="filter-grid">
@@ -93,42 +92,86 @@ function sliderPct(value) {
   padding: 20px;
   display: grid;
   gap: 18px;
+  position: relative;
+  overflow: hidden;
+}
+
+.filter-bar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(255, 122, 26, 0.08), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 42%);
+  pointer-events: none;
 }
 
 .filter-copy {
   display: grid;
-  gap: 6px;
-}
-
-.filter-kicker {
-  color: rgba(255, 189, 147, 0.86);
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  justify-items: center;
+  text-align: center;
+  animation: filter-title-in 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .filter-title {
   max-width: 30ch;
-  font-size: 1.2rem;
+  font-size: clamp(2rem, 5vw, 3.2rem);
   font-weight: 800;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.06em;
   color: #fff6ef;
+  text-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.28),
+    0 0 26px rgba(255, 122, 26, 0.12);
 }
 
 .filter-grid {
   display: grid;
   grid-template-columns: 1.1fr 1.1fr 0.9fr;
   gap: 14px;
+  position: relative;
+  z-index: 1;
 }
 
 .filter-group {
+  position: relative;
+  overflow: hidden;
   padding: 16px;
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.03);
   display: grid;
   gap: 12px;
+  justify-items: center;
+  text-align: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  transition:
+    transform var(--transition),
+    border-color var(--transition),
+    box-shadow var(--transition),
+    background var(--transition);
+}
+
+.filter-group::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 8%, rgba(255, 255, 255, 0.04) 48%, transparent 86%);
+  transform: translateX(-120%);
+  transition: transform 700ms ease;
+  pointer-events: none;
+}
+
+.filter-group:hover::after {
+  transform: translateX(120%);
+}
+
+.filter-group:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 122, 26, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 22px 36px rgba(0, 0, 0, 0.18);
 }
 
 .group-label {
@@ -143,6 +186,7 @@ function sliderPct(value) {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  justify-content: center;
 }
 
 .chip {
@@ -177,6 +221,7 @@ function sliderPct(value) {
 
 .filter-group--slider {
   align-content: start;
+  justify-items: stretch;
 }
 
 .slider-head {
@@ -206,6 +251,18 @@ function sliderPct(value) {
     );
   outline: none;
   cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+@keyframes filter-title-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .slider::-webkit-slider-thumb {

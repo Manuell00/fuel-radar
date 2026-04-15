@@ -76,6 +76,11 @@ function parsePrice(str) {
   return parseFloat((str || '').trim().replace(',', '.'))
 }
 
+function isPlausiblePrice(fuelType, price) {
+  if (fuelType === 'gpl') return price >= 0.25 && price <= 5
+  return price >= 0.8 && price <= 5
+}
+
 function formatRomeDateParts(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: PUBLISH_TZ,
@@ -268,7 +273,7 @@ function applyPrezzi(csv, stationsMap) {
 
     const fuelType = FUEL_MAP[normalizeFuelLabel(rawFuel)]
     if (!fuelType) continue
-    if (isNaN(price) || price <= 0 || price > 5) continue
+    if (isNaN(price) || !isPlausiblePrice(fuelType, price)) continue
 
     const station = stationsMap.get(id)
     if (!station) continue
