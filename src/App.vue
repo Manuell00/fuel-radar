@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import AppHeader from './components/AppHeader.vue'
 import FilterBar from './components/FilterBar.vue'
 import FuelRadarLogo from './components/FuelRadarLogo.vue'
@@ -14,6 +14,7 @@ import { useStations } from './composables/useStations.js'
 const manualLocation = ref(null)
 const selectedStation = ref(null)
 const dismissedBanner = ref('')
+const mapWrapRef = ref(null)
 
 const {
   position,
@@ -111,8 +112,16 @@ async function handleBannerRetry() {
   await refreshStations()
 }
 
-function selectStation(station) {
+async function selectStation(station, options = {}) {
   selectedStation.value = station
+
+  if (!options.scrollToMap) return
+
+  await nextTick()
+  mapWrapRef.value?.scrollIntoView({
+    behavior: 'smooth',
+    block: 'start',
+  })
 }
 </script>
 
@@ -158,7 +167,7 @@ function selectStation(station) {
           </section>
 
           <section v-else key="content" class="dashboard">
-            <div class="map-wrap surface-enter surface-enter--delay-2">
+            <div ref="mapWrapRef" class="map-wrap surface-enter surface-enter--delay-2">
               <MapView
                 :user-position="effectivePosition"
                 :stations="sorted"
@@ -178,7 +187,7 @@ function selectStation(station) {
                 :cheapest="cheapest"
                 :nearest="nearest"
                 :best-compromise="bestCompromise"
-                @select-station="selectStation"
+                @select-station="(station) => selectStation(station, { scrollToMap: true })"
               />
 
               <StationList
@@ -186,7 +195,7 @@ function selectStation(station) {
                 class="surface-enter surface-enter--delay-4"
                 :stations="sorted"
                 :selected-station-id="selectedStation?.id ?? null"
-                @select-station="selectStation"
+                @select-station="(station) => selectStation(station, { scrollToMap: true })"
               />
 
               <div v-else class="empty-state surface-enter surface-enter--delay-3">

@@ -232,10 +232,24 @@ function focusSelectedStation() {
   const marker = markerMap.get(props.selectedStation.id)
   if (!marker) return
 
-  map.flyTo([props.selectedStation.lat, props.selectedStation.lng], Math.max(map.getZoom(), 14), {
+  const latLng = marker.getLatLng()
+  const targetZoom = Math.max(map.getZoom(), 14)
+
+  const openStationPopup = () => {
+    marker.openPopup()
+    window.setTimeout(() => {
+      map?.panInside(latLng, {
+        paddingTopLeft: [28, 180],
+        paddingBottomRight: [28, 28],
+        animate: true,
+      })
+    }, 60)
+  }
+
+  map.once('moveend', openStationPopup)
+  map.flyTo(latLng, targetZoom, {
     duration: 0.5,
   })
-  marker.openPopup()
 }
 
 async function redraw() {
