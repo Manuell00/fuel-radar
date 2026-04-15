@@ -500,6 +500,7 @@ watch(
 
 .map-hud--top {
   top: 18px;
+  justify-content: flex-end;
 }
 
 .hud-pill {
@@ -613,7 +614,7 @@ watch(
 
   .map-hud--top {
     flex-wrap: wrap;
-    justify-content: flex-start;
+    justify-content: flex-end;
   }
 }
 
