@@ -5,9 +5,10 @@ defineProps({
   cheapest: { type: Object, default: null },
   nearest: { type: Object, default: null },
   bestCompromise: { type: Object, default: null },
+  favoriteIds: { type: Array, default: () => [] },
 })
 
-const emit = defineEmits(['select-station'])
+const emit = defineEmits(['select-station', 'toggle-favorite'])
 </script>
 
 <template>
@@ -22,21 +23,27 @@ const emit = defineEmits(['select-station'])
         :station="cheapest"
         type="cheapest"
         label="Più economico"
+        :is-favorite="favoriteIds.includes(cheapest.id)"
         @select="emit('select-station', cheapest)"
+        @toggle-favorite="emit('toggle-favorite', $event)"
       />
       <StationCard
         v-if="nearest"
         :station="nearest"
         type="nearest"
         label="Più vicino"
+        :is-favorite="favoriteIds.includes(nearest.id)"
         @select="emit('select-station', nearest)"
+        @toggle-favorite="emit('toggle-favorite', $event)"
       />
       <StationCard
         v-if="bestCompromise"
         :station="bestCompromise"
         type="best"
         label="Miglior compromesso"
+        :is-favorite="favoriteIds.includes(bestCompromise.id)"
         @select="emit('select-station', bestCompromise)"
+        @toggle-favorite="emit('toggle-favorite', $event)"
       />
     </div>
   </section>

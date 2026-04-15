@@ -6,6 +6,7 @@ import FuelRadarLogo from './components/FuelRadarLogo.vue'
 import LocationBanner from './components/LocationBanner.vue'
 import LocationSearch from './components/LocationSearch.vue'
 import MapView from './components/MapView.vue'
+import StationCard from './components/StationCard.vue'
 import StationList from './components/StationList.vue'
 import TopCards from './components/TopCards.vue'
 import { useGeolocation } from './composables/useGeolocation.js'
@@ -17,16 +18,13 @@ const dismissedBanner = ref('')
 const heroStackRef = ref(null)
 const filtersWrapRef = ref(null)
 const mapWrapRef = ref(null)
+const favoritesWrapRef = ref(null)
 const resultsWrapRef = ref(null)
 const showSplash = ref(true)
 const splashLeaving = ref(false)
+const favoriteIds = ref([])
 const activeMobileSection = ref('home')
-const mobileSections = [
-  { id: 'home', label: 'Home', refName: 'heroStackRef' },
-  { id: 'filtri', label: 'Filtri', refName: 'filtersWrapRef' },
-  { id: 'radar', label: 'Radar', refName: 'mapWrapRef' },
-  { id: 'risultati', label: 'Risultati', refName: 'resultsWrapRef' },
-]
+const favoriteStorageKey = 'fuel-radar-favorites'
 
 let splashFadeTimer = null
 let splashHideTimer = null
@@ -88,6 +86,21 @@ const bannerMessage = computed(() => {
 })
 
 const showBanner = computed(() => bannerMessage.value && dismissedBanner.value !== bannerMessage.value)
+const favoriteStations = computed(() => sorted.value.filter((station) => favoriteIds.value.includes(station.id)))
+const mobileSections = computed(() => {
+  const sections = [
+    { id: 'home', label: 'Home' },
+    { id: 'filtri', label: 'Filtri' },
+    { id: 'radar', label: 'Radar' },
+  ]
+
+  if (favoriteIds.value.length) {
+    sections.push({ id: 'preferiti', label: 'Preferiti' })
+  }
+
+  sections.push({ id: 'risultati', label: 'Risultati' })
+  return sections
+})
 
 watch(bannerMessage, (nextMessage, previousMessage) => {
   if (nextMessage !== previousMessage) {
@@ -96,6 +109,13 @@ watch(bannerMessage, (nextMessage, previousMessage) => {
 })
 
 onMounted(async () => {
+  try {
+    const storedFavorites = window.localStorage.getItem(favoriteStorageKey)
+    favoriteIds.value = storedFavorites ? JSON.parse(storedFavorites) : []
+  } catch {
+    favoriteIds.value = []
+  }
+
   splashFadeTimer = window.setTimeout(() => {
     splashLeaving.value = true
   }, 1050)
@@ -116,6 +136,10 @@ onUnmounted(() => {
   window.removeEventListener('scroll', syncActiveMobileSection)
   window.removeEventListener('resize', syncActiveMobileSection)
 })
+
+watch(favoriteIds, (nextIds) => {
+  window.localStorage.setItem(favoriteStorageKey, JSON.stringify(nextIds))
+}, { deep: true })
 
 function handleSelectLocation(location) {
   manualLocation.value = location
@@ -161,6 +185,7 @@ function resolveSectionElement(sectionId) {
   if (sectionId === 'home') return heroStackRef.value
   if (sectionId === 'filtri') return filtersWrapRef.value
   if (sectionId === 'radar') return mapWrapRef.value
+  if (sectionId === 'preferiti') return favoritesWrapRef.value
   if (sectionId === 'risultati') return resultsWrapRef.value
   return null
 }
@@ -169,7 +194,7 @@ function syncActiveMobileSection() {
   const viewportAnchor = window.innerHeight * 0.32
 
   let current = 'home'
-  mobileSections.forEach((section) => {
+  mobileSections.value.forEach((section) => {
     const el = resolveSectionElement(section.id)
     if (!el) return
     const rect = el.getBoundingClientRect()
@@ -191,6 +216,15 @@ async function scrollToMobileSection(sectionId) {
     behavior: 'smooth',
     block: 'start',
   })
+}
+
+function toggleFavorite(station) {
+  if (favoriteIds.value.includes(station.id)) {
+    favoriteIds.value = favoriteIds.value.filter((id) => id !== station.id)
+    return
+  }
+
+  favoriteIds.value = [...favoriteIds.value, station.id]
 }
 </script>
 
@@ -250,22 +284,54 @@ async function scrollToMobileSection(sectionId) {
                 :user-position="effectivePosition"
                 :stations="sorted"
                 :selected-station="selectedStation"
+                :favorite-ids="favoriteIds"
                 :cheapest="cheapest"
                 :nearest="nearest"
                 :best-compromise="bestCompromise"
                 :radius="filters.radius"
                 @select-station="selectStation"
+                @toggle-favorite="toggleFavorite"
               />
             </div>
 
             <div ref="resultsWrapRef" class="results-wrap">
+              <section
+                v-if="favoriteIds.length"
+                ref="favoritesWrapRef"
+                class="favorites-section surface-enter surface-enter--delay-3"
+              >
+                <div class="favorites-head">
+                  <h2 class="favorites-title">Preferiti</h2>
+                  <p class="favorites-subtitle">I distributori che hai salvato con la stellina.</p>
+                </div>
+
+                <div v-if="favoriteStations.length" class="favorites-grid">
+                  <StationCard
+                    v-for="station in favoriteStations"
+                    :key="`favorite-${station.id}`"
+                    :station="station"
+                    label="Preferito"
+                    type="best"
+                    :is-favorite="true"
+                    @select="(picked) => selectStation(picked, { scrollToMap: true })"
+                    @toggle-favorite="toggleFavorite"
+                  />
+                </div>
+
+                <div v-else class="favorites-empty">
+                  I tuoi preferiti non rientrano nei filtri attuali o nella zona selezionata.
+                </div>
+              </section>
+
               <TopCards
                 v-if="cheapest || nearest || bestCompromise"
                 class="surface-enter surface-enter--delay-3"
                 :cheapest="cheapest"
                 :nearest="nearest"
                 :best-compromise="bestCompromise"
+                :favorite-ids="favoriteIds"
                 @select-station="(station) => selectStation(station, { scrollToMap: true })"
+                @toggle-favorite="toggleFavorite"
               />
 
               <StationList
@@ -273,7 +339,9 @@ async function scrollToMobileSection(sectionId) {
                 class="surface-enter surface-enter--delay-4"
                 :stations="sorted"
                 :selected-station-id="selectedStation?.id ?? null"
+                :favorite-ids="favoriteIds"
                 @select-station="(station) => selectStation(station, { scrollToMap: true })"
+                @toggle-favorite="toggleFavorite"
               />
 
               <div v-else class="empty-state surface-enter surface-enter--delay-3">
@@ -412,6 +480,51 @@ async function scrollToMobileSection(sectionId) {
 .results-wrap {
   display: grid;
   gap: 30px;
+}
+
+.favorites-section {
+  display: grid;
+  gap: 20px;
+}
+
+.favorites-head {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  text-align: center;
+}
+
+.favorites-title {
+  font-size: 1.28rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  color: #fff8f1;
+  -webkit-text-stroke: 0.9px rgba(255, 166, 99, 0.3);
+  text-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.24),
+    0 0 22px rgba(255, 122, 26, 0.1),
+    0 0 2px rgba(255, 214, 181, 0.2);
+}
+
+.favorites-subtitle,
+.favorites-empty {
+  color: rgba(255, 255, 255, 0.64);
+  line-height: 1.6;
+}
+
+.favorites-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.favorites-empty {
+  text-align: center;
+  padding: 20px 18px;
+  border-radius: 22px;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .loading-panel {
@@ -597,6 +710,10 @@ async function scrollToMobileSection(sectionId) {
 
   .results-wrap {
     gap: 22px;
+  }
+
+  .favorites-grid {
+    grid-template-columns: 1fr;
   }
 
   .mobile-dock {

@@ -6,9 +6,10 @@ const props = defineProps({
   station: { type: Object, required: true },
   type: { type: String, default: 'default' },
   label: { type: String, default: '' },
+  isFavorite: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['select'])
+const emit = defineEmits(['select', 'toggle-favorite'])
 
 const fuelNames = {
   benzina: 'Benzina',
@@ -25,13 +26,28 @@ const typeClass = computed(() => `card--${props.type}`)
 function selectCard() {
   emit('select', props.station)
 }
+
+function toggleFavorite() {
+  emit('toggle-favorite', props.station)
+}
 </script>
 
 <template>
   <article class="card" :class="typeClass">
     <div class="card-top">
       <span class="card-label">{{ label }}</span>
-      <span class="card-brand">{{ station.brand }}</span>
+      <div class="card-top-actions">
+        <span class="card-brand">{{ station.brand }}</span>
+        <button
+          class="favorite-btn"
+          :class="{ 'favorite-btn--active': isFavorite }"
+          type="button"
+          :aria-pressed="isFavorite"
+          @click.stop="toggleFavorite"
+        >
+          ★
+        </button>
+      </div>
     </div>
 
     <div class="card-body">
@@ -110,6 +126,12 @@ function selectCard() {
   flex-wrap: wrap;
 }
 
+.card-top-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .card-label,
 .card-brand {
   font-size: 0.72rem;
@@ -120,6 +142,37 @@ function selectCard() {
 
 .card-label { color: rgba(255, 255, 255, 0.62); }
 .card-brand { color: #ffae78; }
+
+.favorite-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 219, 190, 0.72);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    transform var(--transition),
+    border-color var(--transition),
+    background var(--transition),
+    color var(--transition),
+    box-shadow var(--transition);
+}
+
+.favorite-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 178, 117, 0.34);
+  color: #ffd8af;
+}
+
+.favorite-btn--active {
+  background: linear-gradient(135deg, #ffb977, #ff7a1a 60%, #d95504);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 10px 18px rgba(255, 122, 26, 0.2);
+}
 
 .card-body {
   display: grid;

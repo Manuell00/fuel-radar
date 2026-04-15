@@ -173,6 +173,13 @@ a {
   gap: 8px;
 }
 
+.pp-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .pp-badge {
   width: fit-content;
   border-radius: 999px;
@@ -196,6 +203,25 @@ a {
 .pp-badge--best {
   background: rgba(255, 122, 26, 0.16);
   color: #ffb37b;
+}
+
+.pp-favorite {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 220, 193, 0.72);
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pp-favorite--active {
+  background: linear-gradient(135deg, #ffb977, #ff7a1a 60%, #d95504);
+  border-color: transparent;
+  color: white;
 }
 
 .pp-brand {

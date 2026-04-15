@@ -5,9 +5,10 @@ import { formatDistance } from '../utils/distance.js'
 const props = defineProps({
   stations: { type: Array, required: true },
   selectedStationId: { type: String, default: null },
+  favoriteIds: { type: Array, default: () => [] },
 })
 
-const emit = defineEmits(['select-station'])
+const emit = defineEmits(['select-station', 'toggle-favorite'])
 const initialVisibleCount = 5
 const showAll = ref(false)
 
@@ -77,6 +78,16 @@ watch(
     <ul class="list">
       <li v-for="(station, index) in visibleStations" :key="station.id" class="list-item-wrap">
         <article class="list-item" :class="{ 'list-item--active': selectedStationId === station.id }">
+          <button
+            class="favorite-btn"
+            :class="{ 'favorite-btn--active': favoriteIds.includes(station.id) }"
+            type="button"
+            :aria-pressed="favoriteIds.includes(station.id)"
+            @click.stop="emit('toggle-favorite', station)"
+          >
+            ★
+          </button>
+
           <button class="item-main" type="button" @click="emit('select-station', station)">
             <span class="rank">{{ index + 1 }}</span>
 
@@ -186,6 +197,41 @@ watch(
   align-items: stretch;
   gap: 16px;
   transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+}
+
+.favorite-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(14, 18, 25, 0.8);
+  color: rgba(255, 219, 190, 0.72);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    transform var(--transition),
+    border-color var(--transition),
+    background var(--transition),
+    color var(--transition),
+    box-shadow var(--transition);
+}
+
+.favorite-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 178, 117, 0.34);
+  color: #ffd8af;
+}
+
+.favorite-btn--active {
+  background: linear-gradient(135deg, #ffb977, #ff7a1a 60%, #d95504);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 10px 18px rgba(255, 122, 26, 0.2);
 }
 
 .list-item::before {
@@ -315,6 +361,11 @@ watch(
     flex-direction: column;
     padding: 16px;
     gap: 14px;
+  }
+
+  .favorite-btn {
+    top: 12px;
+    right: 12px;
   }
 
   .item-main {

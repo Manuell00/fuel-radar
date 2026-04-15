@@ -6,13 +6,14 @@ const props = defineProps({
   userPosition: { type: Object, default: null },
   stations: { type: Array, default: () => [] },
   selectedStation: { type: Object, default: null },
+  favoriteIds: { type: Array, default: () => [] },
   cheapest: { type: Object, default: null },
   nearest: { type: Object, default: null },
   bestCompromise: { type: Object, default: null },
   radius: { type: Number, default: 12 },
 })
 
-const emit = defineEmits(['select-station'])
+const emit = defineEmits(['select-station', 'toggle-favorite'])
 
 const mapEl = ref(null)
 
@@ -155,10 +156,16 @@ function popupHtml(station, type) {
 
   const distance = station.distance != null ? `${station.distance.toFixed(1)} km` : 'Distanza non disponibile'
   const eta = estimateMinutes(station.distance)
+  const isFavorite = props.favoriteIds.includes(station.id)
 
   return `
     <div class="pp">
-      ${badges[type] ? `<span class="pp-badge pp-badge--${type === 'selected' ? 'nearest' : type}">${badges[type]}</span>` : ''}
+      <div class="pp-topline">
+        ${badges[type] ? `<span class="pp-badge pp-badge--${type === 'selected' ? 'nearest' : type}">${badges[type]}</span>` : '<span></span>'}
+        <button class="pp-favorite ${isFavorite ? 'pp-favorite--active' : ''}" type="button" data-station-id="${station.id}" aria-pressed="${isFavorite}">
+          ★
+        </button>
+      </div>
       <div class="pp-brand">${station.brand}</div>
       <div class="pp-name">${station.name}</div>
       <div class="pp-meta">
@@ -293,6 +300,22 @@ onMounted(async () => {
   stationLayer = L.layerGroup().addTo(map)
   radiusLayer = L.layerGroup().addTo(map)
 
+  map.on('popupopen', (event) => {
+    const popupEl = event.popup.getElement()
+    const favoriteBtn = popupEl?.querySelector('[data-station-id]')
+    if (!favoriteBtn) return
+
+    favoriteBtn.addEventListener('click', (clickEvent) => {
+      clickEvent.preventDefault()
+      clickEvent.stopPropagation()
+      const stationId = favoriteBtn.getAttribute('data-station-id')
+      const station = props.stations.find((entry) => entry.id === stationId)
+      if (station) {
+        emit('toggle-favorite', station)
+      }
+    }, { once: true })
+  })
+
   await redraw()
 })
 
@@ -308,6 +331,7 @@ watch(
     () => props.userPosition,
     () => props.stations,
     () => props.selectedStation,
+    () => props.favoriteIds,
     () => props.radius,
     () => props.cheapest,
     () => props.nearest,
