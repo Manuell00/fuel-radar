@@ -15,7 +15,7 @@ defineProps({
           <div class="hero-showcase">
             <div class="brand-row">
               <div class="brand-copy">
-                <h1 class="title">Fuel Radar</h1>
+                <h1 class="title">FUEL RADAR</h1>
               </div>
 
               <div class="brand-logo-wrap" aria-hidden="true">
@@ -124,23 +124,26 @@ defineProps({
 .brand-logo-wrap::before {
   content: '';
   position: absolute;
-  inset: -16px;
+  inset: -14px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 122, 26, 0.18), transparent 65%);
-  filter: blur(10px);
+  background: radial-gradient(circle, rgba(255, 122, 26, 0.2), transparent 62%);
+  filter: blur(8px);
   z-index: -1;
 }
 
 .title {
   font-size: clamp(3.3rem, 9vw, 7rem);
   line-height: 0.9;
-  letter-spacing: -0.08em;
-  color: #fff6ef;
+  letter-spacing: -0.06em;
+  text-transform: uppercase;
+  color: #fff8f1;
+  -webkit-text-stroke: 1.25px rgba(255, 165, 97, 0.52);
   max-width: none;
   text-wrap: balance;
   text-shadow:
-    0 10px 28px rgba(0, 0, 0, 0.3),
-    0 0 30px rgba(255, 122, 26, 0.14);
+    0 12px 30px rgba(0, 0, 0, 0.26),
+    0 0 28px rgba(255, 122, 26, 0.12),
+    0 0 2px rgba(255, 207, 166, 0.42);
   position: relative;
   animation: title-pulse 3.8s ease-in-out infinite;
 }
@@ -149,20 +152,18 @@ defineProps({
   content: '';
   position: absolute;
   left: 50%;
-  bottom: -26px;
-  width: min(320px, 72%);
-  height: 16px;
+  bottom: -24px;
+  width: min(340px, 74%);
+  height: 8px;
   border-radius: 999px;
   transform: translateX(-50%);
   background:
-    radial-gradient(circle at 14% 50%, rgba(255, 221, 189, 0.95) 0 7%, transparent 8%),
-    radial-gradient(circle at 34% 52%, rgba(255, 191, 134, 0.92) 0 7%, transparent 8%),
-    radial-gradient(circle at 58% 49%, rgba(255, 150, 81, 0.94) 0 8%, transparent 9%),
-    radial-gradient(circle at 82% 52%, rgba(255, 122, 26, 0.95) 0 7%, transparent 8%),
-    linear-gradient(90deg, rgba(255, 122, 26, 0) 0%, rgba(255, 146, 73, 0.78) 14%, rgba(255, 181, 120, 0.98) 50%, rgba(255, 146, 73, 0.78) 86%, rgba(255, 122, 26, 0) 100%);
+    linear-gradient(90deg, rgba(255, 122, 26, 0) 0%, rgba(255, 171, 107, 0.78) 18%, rgba(255, 231, 213, 0.98) 50%, rgba(255, 171, 107, 0.78) 82%, rgba(255, 122, 26, 0) 100%);
   box-shadow:
-    0 2px 0 rgba(255, 231, 210, 0.16) inset,
-    0 10px 18px rgba(255, 122, 26, 0.18);
+    0 1px 0 rgba(255, 247, 240, 0.42) inset,
+    0 0 0 1px rgba(255, 176, 113, 0.18),
+    0 10px 22px rgba(255, 122, 26, 0.16),
+    0 0 24px rgba(255, 170, 106, 0.16);
   opacity: 0.98;
   animation: fuel-flow 3.2s ease-in-out infinite;
 }
@@ -365,23 +366,25 @@ defineProps({
 @keyframes title-pulse {
   0%, 100% {
     text-shadow:
-      0 10px 28px rgba(0, 0, 0, 0.3),
-      0 0 30px rgba(255, 122, 26, 0.14);
+      0 12px 30px rgba(0, 0, 0, 0.26),
+      0 0 28px rgba(255, 122, 26, 0.12),
+      0 0 2px rgba(255, 207, 166, 0.42);
   }
   50% {
     text-shadow:
-      0 12px 32px rgba(0, 0, 0, 0.32),
-      0 0 42px rgba(255, 122, 26, 0.22);
+      0 14px 34px rgba(0, 0, 0, 0.3),
+      0 0 38px rgba(255, 122, 26, 0.18),
+      0 0 3px rgba(255, 220, 192, 0.5);
   }
 }
 
 @keyframes fuel-flow {
   0%, 100% {
-    transform: translateX(-50%) scaleX(0.985) translateY(0);
+    transform: translateX(-50%) scaleX(0.99) translateY(0);
     opacity: 0.9;
   }
   50% {
-    transform: translateX(-50%) scaleX(1.02) translateY(1px);
+    transform: translateX(-50%) scaleX(1.035) translateY(0.5px);
     opacity: 1;
   }
 }
@@ -496,8 +499,8 @@ defineProps({
   }
 
   .title::after {
-    bottom: -22px;
-    width: min(240px, 84%);
+    bottom: -20px;
+    width: min(248px, 84%);
   }
 
   .metric-card {

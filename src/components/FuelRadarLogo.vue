@@ -34,8 +34,9 @@ const props = defineProps({
   justify-content: center;
   border-radius: 28%;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.28),
-    0 18px 40px rgba(255, 122, 26, 0.3);
+    0 0 0 1px rgba(255, 196, 150, 0.14),
+    0 10px 24px rgba(255, 122, 26, 0.22),
+    0 0 34px rgba(255, 122, 26, 0.18);
 }
 
 .fuel-logo svg {
@@ -46,7 +47,8 @@ const props = defineProps({
 
 .fuel-logo--compact {
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.22),
-    0 12px 24px rgba(255, 122, 26, 0.24);
+    0 0 0 1px rgba(255, 196, 150, 0.12),
+    0 8px 18px rgba(255, 122, 26, 0.18),
+    0 0 24px rgba(255, 122, 26, 0.16);
 }
 </style>
