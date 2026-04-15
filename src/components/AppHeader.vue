@@ -12,13 +12,29 @@ defineProps({
     <div class="header-shell">
       <div class="hero-copy">
         <div class="hero-title-wrap">
-          <div class="brand-row">
-            <div class="brand-copy">
-              <h1 class="title">Fuel Radar</h1>
+          <div class="hero-showcase">
+            <div class="brand-row">
+              <div class="brand-copy">
+                <h1 class="title">Fuel Radar</h1>
+              </div>
+
+              <div class="brand-logo-wrap" aria-hidden="true">
+                <FuelRadarLogo :size="86" />
+              </div>
             </div>
 
-            <div class="brand-logo-wrap" aria-hidden="true">
-              <FuelRadarLogo :size="86" />
+            <div class="hero-graphic" aria-hidden="true">
+              <div class="hero-graphic__beam"></div>
+              <div class="hero-graphic__ring hero-graphic__ring--outer"></div>
+              <div class="hero-graphic__ring hero-graphic__ring--inner"></div>
+              <div class="hero-graphic__grid"></div>
+              <div class="hero-graphic__route hero-graphic__route--left"></div>
+              <div class="hero-graphic__route hero-graphic__route--right"></div>
+              <span class="hero-graphic__node hero-graphic__node--left"></span>
+              <span class="hero-graphic__node hero-graphic__node--center"></span>
+              <span class="hero-graphic__node hero-graphic__node--right"></span>
+              <span class="hero-graphic__pulse hero-graphic__pulse--one"></span>
+              <span class="hero-graphic__pulse hero-graphic__pulse--two"></span>
             </div>
           </div>
         </div>
@@ -57,11 +73,11 @@ defineProps({
   content: '';
   position: absolute;
   inset: -24px 0 auto;
-  height: 180px;
+  height: 150px;
   background:
-    radial-gradient(circle at 12% 24%, rgba(255, 145, 72, 0.18), transparent 32%),
-    radial-gradient(circle at 82% 12%, rgba(255, 122, 26, 0.16), transparent 28%);
-  filter: blur(12px);
+    radial-gradient(circle at 12% 24%, rgba(255, 145, 72, 0.12), transparent 30%),
+    radial-gradient(circle at 82% 12%, rgba(255, 122, 26, 0.11), transparent 26%);
+  filter: blur(10px);
   z-index: -1;
   pointer-events: none;
 }
@@ -75,6 +91,13 @@ defineProps({
 .hero-title-wrap {
   display: grid;
   place-items: center;
+}
+
+.hero-showcase {
+  width: min(100%, 860px);
+  display: grid;
+  justify-items: center;
+  gap: 24px;
 }
 
 .brand-row {
@@ -142,6 +165,143 @@ defineProps({
     0 10px 18px rgba(255, 122, 26, 0.18);
   opacity: 0.98;
   animation: fuel-flow 3.2s ease-in-out infinite;
+}
+
+.hero-graphic {
+  width: min(100%, 700px);
+  min-height: 152px;
+  position: relative;
+  border-radius: 36px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)),
+    radial-gradient(circle at 50% 10%, rgba(255, 155, 84, 0.16), transparent 42%),
+    rgba(12, 14, 19, 0.56);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 28px 44px rgba(0, 0, 0, 0.16);
+}
+
+.hero-graphic__beam,
+.hero-graphic__ring,
+.hero-graphic__grid,
+.hero-graphic__route,
+.hero-graphic__node,
+.hero-graphic__pulse {
+  position: absolute;
+}
+
+.hero-graphic__beam {
+  inset: auto 9% 16px;
+  height: 58px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 208, 171, 0.22), transparent 48%),
+    linear-gradient(90deg, rgba(255, 122, 26, 0), rgba(255, 146, 73, 0.18) 20%, rgba(255, 196, 148, 0.22) 50%, rgba(255, 146, 73, 0.18) 80%, rgba(255, 122, 26, 0));
+  filter: blur(18px);
+  opacity: 0.8;
+}
+
+.hero-graphic__ring {
+  left: 50%;
+  top: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hero-graphic__ring--outer {
+  width: 220px;
+  height: 220px;
+  box-shadow: 0 0 0 1px rgba(255, 122, 26, 0.08) inset;
+  animation: radar-breathe 5.4s ease-in-out infinite;
+}
+
+.hero-graphic__ring--inner {
+  width: 122px;
+  height: 122px;
+  border-color: rgba(255, 180, 124, 0.22);
+  animation: radar-breathe 4.2s ease-in-out infinite reverse;
+}
+
+.hero-graphic__grid {
+  inset: 14px;
+  border-radius: 28px;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(circle at center, black 28%, transparent 88%);
+  opacity: 0.55;
+}
+
+.hero-graphic__route {
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 122, 26, 0), rgba(255, 183, 126, 0.94), rgba(255, 122, 26, 0));
+  box-shadow: 0 0 14px rgba(255, 151, 79, 0.3);
+}
+
+.hero-graphic__route--left {
+  left: 13%;
+  right: 49%;
+  top: 58%;
+  transform: rotate(-8deg);
+}
+
+.hero-graphic__route--right {
+  left: 51%;
+  right: 14%;
+  top: 50%;
+  transform: rotate(11deg);
+}
+
+.hero-graphic__node,
+.hero-graphic__pulse {
+  border-radius: 50%;
+}
+
+.hero-graphic__node {
+  width: 18px;
+  height: 18px;
+  background: linear-gradient(135deg, #ffc392, #ff7a1a 60%, #d95504);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 8px rgba(255, 122, 26, 0.08);
+}
+
+.hero-graphic__node--left {
+  left: 19%;
+  top: 53%;
+}
+
+.hero-graphic__node--center {
+  left: calc(50% - 9px);
+  top: calc(50% - 9px);
+}
+
+.hero-graphic__node--right {
+  right: 18%;
+  top: 44%;
+}
+
+.hero-graphic__pulse {
+  width: 72px;
+  height: 72px;
+  border: 1px solid rgba(255, 173, 112, 0.16);
+  background: radial-gradient(circle, rgba(255, 173, 112, 0.08), transparent 68%);
+}
+
+.hero-graphic__pulse--one {
+  left: calc(50% - 36px);
+  top: calc(50% - 36px);
+  animation: pulse-ring 2.8s ease-out infinite;
+}
+
+.hero-graphic__pulse--two {
+  left: calc(50% - 36px);
+  top: calc(50% - 36px);
+  animation: pulse-ring 2.8s ease-out infinite 1.1s;
 }
 
 .hero-metrics {
@@ -235,6 +395,31 @@ defineProps({
   }
 }
 
+@keyframes radar-breathe {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(0.985);
+    opacity: 0.82;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.02);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.42);
+    opacity: 0;
+  }
+  28% {
+    opacity: 0.92;
+  }
+  100% {
+    transform: scale(1.85);
+    opacity: 0;
+  }
+}
+
 .metric-label {
   color: rgba(255, 255, 255, 0.46);
   font-size: 0.72rem;
@@ -273,6 +458,10 @@ defineProps({
   .hero-metrics {
     grid-template-columns: 1fr;
   }
+
+  .hero-graphic {
+    min-height: 138px;
+  }
 }
 
 @media (max-width: 560px) {
@@ -298,6 +487,10 @@ defineProps({
     transform-origin: center;
   }
 
+  .hero-showcase {
+    gap: 18px;
+  }
+
   .title {
     font-size: clamp(2.4rem, 11vw, 3rem);
   }
@@ -318,6 +511,48 @@ defineProps({
 
   .metric-value--search {
     font-size: 1.1rem;
+  }
+
+  .hero-graphic {
+    min-height: 118px;
+    border-radius: 28px;
+  }
+
+  .hero-graphic__ring--outer {
+    width: 170px;
+    height: 170px;
+  }
+
+  .hero-graphic__ring--inner {
+    width: 96px;
+    height: 96px;
+  }
+
+  .hero-graphic__grid {
+    inset: 10px;
+    border-radius: 22px;
+    background-size: 24px 24px;
+  }
+
+  .hero-graphic__node {
+    width: 14px;
+    height: 14px;
+  }
+
+  .hero-graphic__node--center {
+    left: calc(50% - 7px);
+    top: calc(50% - 7px);
+  }
+
+  .hero-graphic__pulse {
+    width: 54px;
+    height: 54px;
+  }
+
+  .hero-graphic__pulse--one,
+  .hero-graphic__pulse--two {
+    left: calc(50% - 27px);
+    top: calc(50% - 27px);
   }
 }
 </style>
