@@ -389,7 +389,7 @@ onUnmounted(() => {
 }
 
 .search-shell {
-  max-width: 980px;
+  width: 100%;
   margin: 0 auto;
   padding: 1.05rem;
   border-radius: 28px;
