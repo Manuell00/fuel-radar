@@ -38,7 +38,6 @@ const {
   bestCompromise,
   stationsLoading,
   stationsError,
-  liveReady,
   usingFallback,
   refreshStations,
 } = useStations(effectivePosition)
@@ -51,6 +50,11 @@ const loadingLabel = computed(() => (
 ))
 
 const stationCount = computed(() => sorted.value.length)
+const searchMode = computed(() => {
+  if (manualLocation.value) return 'Per indirizzo'
+  if (effectivePosition.value) return 'Posizione attuale'
+  return 'In attesa'
+})
 
 const bannerMessage = computed(() => {
   if (stationsError.value && !sorted.value.length) return stationsError.value
@@ -119,9 +123,8 @@ function selectStation(station) {
 
     <div class="page-content">
       <AppHeader
-        :live-ready="liveReady"
-        :using-fallback="usingFallback"
         :station-count="stationCount"
+        :search-mode="searchMode"
       />
 
       <Transition name="banner-fade">

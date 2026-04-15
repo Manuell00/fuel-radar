@@ -2,9 +2,8 @@
 import FuelRadarLogo from './FuelRadarLogo.vue'
 
 defineProps({
-  liveReady: { type: Boolean, default: false },
-  usingFallback: { type: Boolean, default: false },
   stationCount: { type: Number, default: 0 },
+  searchMode: { type: String, default: 'In attesa' },
 })
 </script>
 
@@ -29,19 +28,11 @@ defineProps({
         <article class="metric-card">
           <span class="metric-label">Stazioni visibili</span>
           <strong class="metric-value">{{ stationCount }}</strong>
-          <span class="metric-note">ordinate e filtrate attorno alla tua posizione</span>
         </article>
 
         <article class="metric-card">
           <span class="metric-label">Ricerca</span>
-          <strong class="metric-value">Smart</strong>
-          <span class="metric-note">autocomplete per indirizzi e uso rapido della posizione attuale</span>
-        </article>
-
-        <article class="metric-card">
-          <span class="metric-label">Sorgente dati</span>
-          <strong class="metric-value">{{ usingFallback ? 'Fallback' : 'Live' }}</strong>
-          <span class="metric-note">popup mappa con distanza, tempi stimati e prezzi carburante</span>
+          <strong class="metric-value metric-value--search">{{ searchMode }}</strong>
         </article>
       </div>
     </div>
@@ -155,7 +146,7 @@ defineProps({
 
 .hero-metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
 }
 
@@ -172,7 +163,9 @@ defineProps({
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
     0 20px 40px rgba(0, 0, 0, 0.16);
   display: grid;
-  gap: 6px;
+  place-items: center;
+  text-align: center;
+  gap: 10px;
   transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
 }
 
@@ -252,15 +245,15 @@ defineProps({
 
 .metric-value {
   color: #fff6ef;
-  font-size: clamp(1.2rem, 2vw, 1.8rem);
+  font-size: clamp(2.1rem, 5vw, 3.6rem);
   font-weight: 800;
   letter-spacing: -0.04em;
+  line-height: 0.95;
 }
 
-.metric-note {
-  color: rgba(255, 255, 255, 0.62);
-  line-height: 1.55;
-  font-size: 0.86rem;
+.metric-value--search {
+  font-size: clamp(1.3rem, 3vw, 2rem);
+  line-height: 1.1;
 }
 
 @media (max-width: 820px) {
