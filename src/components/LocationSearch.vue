@@ -22,6 +22,10 @@ let reverseController = null
 
 const hasResults = computed(() => results.value.length > 0)
 const showDropdown = computed(() => !suppressSuggestions.value && (hasResults.value || loading.value))
+const showSuccessNotice = computed(() =>
+  helperText.value === 'Posizione attuale rilevata e applicata alla mappa.' ||
+  helperText.value === 'Posizione attuale rilevata. Indirizzo preciso non disponibile.'
+)
 
 function normalizeResult(item) {
   const primaryParts = []
@@ -300,8 +304,10 @@ onUnmounted(() => {
   <section class="location-search">
     <div class="search-shell">
       <div class="search-copy">
-        <p class="search-kicker">RICERCA POSIZIONE</p>
-        <h2 class="search-title">Trova un indirizzo mentre scrivi, oppure usa subito la tua posizione.</h2>
+        <h2 class="search-title">Ricerca Posizione</h2>
+        <p class="search-subtitle">
+          Scegli un indirizzo oppure usa direttamente la tua posizione attuale.
+        </p>
       </div>
 
       <div class="search-form">
@@ -363,7 +369,11 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <p class="search-helper">{{ helperText }}</p>
+      <div v-if="showSuccessNotice" class="search-notice search-notice--success" role="status" aria-live="polite">
+        <span class="notice-icon" aria-hidden="true">✓</span>
+        <span>{{ helperText }}</span>
+      </div>
+      <p v-else class="search-helper">{{ helperText }}</p>
       <p v-if="manualLocation" class="active-location">
         Posizione manuale attiva: <strong>{{ manualLocation.label }}</strong>
       </p>
@@ -405,23 +415,24 @@ onUnmounted(() => {
 }
 
 .search-copy {
-  text-align: left;
-}
-
-.search-kicker {
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  color: var(--primary-dark);
+  text-align: center;
+  display: grid;
+  gap: 0.65rem;
 }
 
 .search-title {
-  margin-top: 0.4rem;
-  font-size: 1.18rem;
+  font-size: clamp(2rem, 5vw, 3rem);
   font-weight: 800;
   color: #ffffff;
-  letter-spacing: -0.03em;
-  max-width: 28ch;
+  letter-spacing: -0.06em;
+  text-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.28),
+    0 0 26px rgba(255, 122, 26, 0.12);
+}
+
+.search-subtitle {
+  color: rgba(255,255,255,0.7);
+  line-height: 1.7;
 }
 
 .search-form {
@@ -540,6 +551,44 @@ onUnmounted(() => {
   color: rgba(255,255,255,0.64);
 }
 
+.search-notice {
+  margin-top: 0.95rem;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.78rem 1rem;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.search-notice--success {
+  background: rgba(255, 122, 26, 0.16);
+  border: 1px solid rgba(255, 167, 100, 0.28);
+  color: #fff2e8;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 12px 24px rgba(255, 122, 26, 0.14);
+}
+
+.notice-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ff9c52, #ff7a1a 55%, #d95504);
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 900;
+  box-shadow: 0 8px 16px rgba(255, 122, 26, 0.22);
+}
+
 .active-location {
   color: rgba(255,255,255,0.72);
 }
@@ -652,7 +701,7 @@ onUnmounted(() => {
 
   .search-title {
     max-width: none;
-    font-size: 1.02rem;
+    font-size: 2rem;
   }
 
   .search-actions {
