@@ -50,14 +50,14 @@ defineProps({
 
 <style scoped>
 .app-header {
-  padding: 42px 0 28px;
+  padding: 42px 0 34px;
 }
 
 .header-shell {
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
   display: grid;
-  gap: 28px;
+  gap: 36px;
   position: relative;
   isolation: isolate;
 }
@@ -77,8 +77,8 @@ defineProps({
 
 .hero-copy {
   display: grid;
-  gap: 18px;
-  padding: 16px 2px 0;
+  gap: 24px;
+  padding: 18px 2px 8px;
 }
 
 .hero-title-wrap {
@@ -97,7 +97,7 @@ defineProps({
 
 .brand-copy {
   display: grid;
-  gap: 8px;
+  gap: 14px;
   justify-items: start;
   max-width: 760px;
 }
@@ -135,19 +135,21 @@ defineProps({
   content: '';
   position: absolute;
   left: 50%;
-  bottom: -18px;
+  bottom: -26px;
   width: min(320px, 72%);
-  height: 18px;
+  height: 16px;
   border-radius: 999px;
   transform: translateX(-50%);
   background:
-    radial-gradient(circle at 15% 50%, rgba(255, 208, 163, 0.92) 0 10%, transparent 11%),
-    radial-gradient(circle at 36% 55%, rgba(255, 180, 114, 0.9) 0 10%, transparent 11%),
-    radial-gradient(circle at 58% 48%, rgba(255, 145, 72, 0.92) 0 11%, transparent 12%),
-    radial-gradient(circle at 82% 53%, rgba(255, 122, 26, 0.92) 0 10%, transparent 11%),
-    linear-gradient(90deg, transparent, rgba(255, 122, 26, 0.42) 12%, rgba(255, 167, 100, 0.9) 50%, rgba(255, 122, 26, 0.42) 88%, transparent);
-  filter: blur(4px);
-  opacity: 0.95;
+    radial-gradient(circle at 14% 50%, rgba(255, 221, 189, 0.95) 0 7%, transparent 8%),
+    radial-gradient(circle at 34% 52%, rgba(255, 191, 134, 0.92) 0 7%, transparent 8%),
+    radial-gradient(circle at 58% 49%, rgba(255, 150, 81, 0.94) 0 8%, transparent 9%),
+    radial-gradient(circle at 82% 52%, rgba(255, 122, 26, 0.95) 0 7%, transparent 8%),
+    linear-gradient(90deg, rgba(255, 122, 26, 0) 0%, rgba(255, 146, 73, 0.78) 14%, rgba(255, 181, 120, 0.98) 50%, rgba(255, 146, 73, 0.78) 86%, rgba(255, 122, 26, 0) 100%);
+  box-shadow:
+    0 2px 0 rgba(255, 231, 210, 0.16) inset,
+    0 10px 18px rgba(255, 122, 26, 0.18);
+  opacity: 0.98;
   animation: fuel-flow 3.2s ease-in-out infinite;
 }
 
@@ -222,11 +224,11 @@ defineProps({
 
 @keyframes fuel-flow {
   0%, 100% {
-    transform: translateX(-50%) scaleX(0.98);
-    opacity: 0.88;
+    transform: translateX(-50%) scaleX(0.985) translateY(0);
+    opacity: 0.9;
   }
   50% {
-    transform: translateX(-50%) scaleX(1.04);
+    transform: translateX(-50%) scaleX(1.02) translateY(1px);
     opacity: 1;
   }
 }
@@ -290,6 +292,7 @@ defineProps({
   }
 
   .title::after {
+    bottom: -22px;
     width: min(240px, 84%);
   }
 }
