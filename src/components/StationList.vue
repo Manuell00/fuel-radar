@@ -1,18 +1,29 @@
 <script setup>
+import { computed, ref, watch } from 'vue'
 import { formatDistance } from '../utils/distance.js'
 
-defineProps({
+const props = defineProps({
   stations: { type: Array, required: true },
   selectedStationId: { type: String, default: null },
 })
 
 const emit = defineEmits(['select-station'])
+const initialVisibleCount = 5
+const showAll = ref(false)
 
 const fuelNames = {
   benzina: 'Benzina',
   diesel: 'Diesel',
   gpl: 'GPL',
 }
+
+const hasToggle = computed(() => props.stations.length > initialVisibleCount)
+const visibleStations = computed(() => (
+  showAll.value ? props.stations : props.stations.slice(0, initialVisibleCount)
+))
+const toggleLabel = computed(() => (
+  showAll.value ? 'Mostra meno' : `Visualizza tutti (${props.stations.length})`
+))
 
 function mapsUrl(station) {
   return `https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lng}&travelmode=driving`
@@ -21,6 +32,40 @@ function mapsUrl(station) {
 function estimateMinutes(distanceKm) {
   return Math.max(2, Math.round((distanceKm / 42) * 60))
 }
+
+function toggleExpanded() {
+  showAll.value = !showAll.value
+}
+
+watch(
+  () => props.stations,
+  (nextStations) => {
+    if (nextStations.length <= initialVisibleCount) {
+      showAll.value = false
+      return
+    }
+
+    if (!props.selectedStationId) {
+      showAll.value = false
+      return
+    }
+
+    const selectedIndex = nextStations.findIndex((station) => station.id === props.selectedStationId)
+    showAll.value = selectedIndex >= initialVisibleCount
+  },
+  { deep: true, immediate: true }
+)
+
+watch(
+  () => props.selectedStationId,
+  (nextSelectedId) => {
+    if (!nextSelectedId) return
+    const selectedIndex = props.stations.findIndex((station) => station.id === nextSelectedId)
+    if (selectedIndex >= initialVisibleCount) {
+      showAll.value = true
+    }
+  }
+)
 </script>
 
 <template>
@@ -31,7 +76,7 @@ function estimateMinutes(distanceKm) {
     </div>
 
     <ul class="list">
-      <li v-for="(station, index) in stations" :key="station.id" class="list-item-wrap">
+      <li v-for="(station, index) in visibleStations" :key="station.id" class="list-item-wrap">
         <article class="list-item" :class="{ 'list-item--active': selectedStationId === station.id }">
           <button class="item-main" type="button" @click="emit('select-station', station)">
             <span class="rank">{{ index + 1 }}</span>
@@ -62,6 +107,12 @@ function estimateMinutes(distanceKm) {
         </article>
       </li>
     </ul>
+
+    <div v-if="hasToggle" class="list-footer">
+      <button class="list-toggle" type="button" @click="toggleExpanded">
+        {{ toggleLabel }}
+      </button>
+    </div>
   </section>
 </template>
 
@@ -97,6 +148,35 @@ function estimateMinutes(distanceKm) {
   display: grid;
   gap: 16px;
   counter-reset: station-rank;
+}
+
+.list-footer {
+  display: flex;
+  justify-content: center;
+}
+
+.list-toggle {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff1e6;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform var(--transition),
+    border-color var(--transition),
+    background var(--transition),
+    box-shadow var(--transition);
+}
+
+.list-toggle:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 122, 26, 0.28);
+  background: rgba(255, 122, 26, 0.12);
+  box-shadow: 0 12px 24px rgba(255, 122, 26, 0.14);
 }
 
 .list-item {
@@ -250,6 +330,10 @@ function estimateMinutes(distanceKm) {
 
   .map-link {
     min-height: 42px;
+    width: 100%;
+  }
+
+  .list-toggle {
     width: 100%;
   }
 }
