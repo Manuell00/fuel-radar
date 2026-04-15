@@ -333,12 +333,7 @@ watch(
       <div class="map-noise" aria-hidden="true"></div>
 
       <div class="map-hud map-hud--top" aria-hidden="true">
-        <span class="hud-pill">Live area</span>
-        <span class="hud-pill hud-pill--accent">Premium map</span>
-      </div>
-
-      <div class="map-hud map-hud--bottom" aria-hidden="true">
-        <span class="hud-caption">Scena mappa ottimizzata per selezione rapida e lettura prezzi</span>
+        <span class="hud-pill hud-pill--accent">Live Area</span>
       </div>
 
       <div ref="mapEl" class="map-canvas"></div>
@@ -475,13 +470,7 @@ watch(
   top: 18px;
 }
 
-.map-hud--bottom {
-  bottom: 18px;
-  justify-content: center;
-}
-
-.hud-pill,
-.hud-caption {
+.hud-pill {
   display: inline-flex;
   align-items: center;
   min-height: 34px;
@@ -505,13 +494,6 @@ watch(
   background: rgba(255, 141, 57, 0.88);
   color: white;
   border-color: rgba(255, 141, 57, 0.8);
-}
-
-.hud-caption {
-  text-align: center;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: rgba(17, 21, 28, 0.86);
 }
 
 .map-canvas {
@@ -591,12 +573,7 @@ watch(
     top: 12px;
   }
 
-  .map-hud--bottom {
-    bottom: 12px;
-  }
-
-  .hud-pill,
-  .hud-caption {
+  .hud-pill {
     min-height: 30px;
     padding: 0 11px;
     font-size: 0.7rem;
@@ -622,10 +599,6 @@ watch(
 
   .map-stage {
     border-radius: 22px;
-  }
-
-  .map-hud--bottom {
-    display: none;
   }
 }
 </style>
