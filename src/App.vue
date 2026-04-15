@@ -894,7 +894,7 @@ function updateFilters(nextFilters) {
 @media (max-width: 720px) {
   .main-shell {
     width: min(100%, calc(100% - 20px));
-    padding-bottom: 108px;
+    padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px));
   }
 
   .hero-stack {
@@ -903,15 +903,7 @@ function updateFilters(nextFilters) {
   }
 
   .page-switcher {
-    width: 100%;
-    margin-bottom: 24px;
-    justify-content: space-between;
-  }
-
-  .page-switcher__item {
-    flex: 1 1 0;
-    min-width: 0;
-    padding: 0 12px;
+    display: none;
   }
 
   .map-wrap,
@@ -960,7 +952,7 @@ function updateFilters(nextFilters) {
   }
 
   .mobile-dock {
-    bottom: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
     width: calc(100% - 18px);
     padding: 7px;
   }
