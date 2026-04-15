@@ -300,10 +300,7 @@ watch(
 <template>
   <section class="map-view">
     <div class="map-copy">
-      <div>
-        <span class="map-kicker">Mappa radar</span>
-        <h2 class="map-title">Stazioni ben visibili, popup completi e apertura immediata nelle mappe.</h2>
-      </div>
+      <h2 class="map-title">Radar Rifornimenti</h2>
       <p class="map-subtitle">
         Tocca un marker o una riga della lista per vedere il distributore, la distanza, il tempo stimato e i prezzi disponibili.
       </p>
@@ -323,33 +320,38 @@ watch(
 }
 
 .map-copy {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.map-kicker {
-  color: rgba(255, 189, 147, 0.86);
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  text-align: center;
+  animation: map-copy-in 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .map-title {
-  margin-top: 6px;
-  font-size: 1.22rem;
+  font-size: clamp(2rem, 5vw, 3.1rem);
   font-weight: 800;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.06em;
   color: #fff6ef;
+  text-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.28),
+    0 0 26px rgba(255, 122, 26, 0.12);
 }
 
 .map-subtitle {
-  max-width: 46ch;
+  max-width: 52ch;
   color: rgba(255, 255, 255, 0.66);
   line-height: 1.6;
+}
+
+@keyframes map-copy-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .map-stage {
