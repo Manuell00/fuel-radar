@@ -13,14 +13,20 @@ const emit = defineEmits(['primary-action', 'secondary-action'])
   <header class="app-header">
     <div class="header-shell">
       <div class="hero-visual" aria-hidden="true">
-        <div class="hero-radar">
-          <span class="hero-radar__ring hero-radar__ring--outer"></span>
-          <span class="hero-radar__ring hero-radar__ring--mid"></span>
-          <span class="hero-radar__ring hero-radar__ring--inner"></span>
-          <span class="hero-radar__node hero-radar__node--main"></span>
-          <span class="hero-radar__node hero-radar__node--top"></span>
-          <span class="hero-radar__node hero-radar__node--right"></span>
-          <span class="hero-radar__beam"></span>
+        <div class="hero-radar-shell">
+          <div class="hero-radar-glow"></div>
+          <div class="hero-radar">
+            <span class="hero-radar__ring hero-radar__ring--outer"></span>
+            <span class="hero-radar__ring hero-radar__ring--mid"></span>
+            <span class="hero-radar__ring hero-radar__ring--inner"></span>
+            <span class="hero-radar__sweep"></span>
+            <span class="hero-radar__trail"></span>
+            <span class="hero-radar__node hero-radar__node--main"></span>
+            <span class="hero-radar__node hero-radar__node--top"></span>
+            <span class="hero-radar__node hero-radar__node--right"></span>
+            <span class="hero-radar__ping hero-radar__ping--top"></span>
+            <span class="hero-radar__beam"></span>
+          </div>
         </div>
       </div>
 
@@ -80,15 +86,37 @@ const emit = defineEmits(['primary-action', 'secondary-action'])
   width: min(100%, 520px);
   display: grid;
   place-items: center;
-  padding-top: 8px;
+  padding-top: 10px;
+  perspective: 1200px;
+}
+
+.hero-radar-shell {
+  position: relative;
+  width: min(68vw, 360px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+
+.hero-radar-glow {
+  position: absolute;
+  inset: 12% 10% 22%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 122, 26, 0.18), rgba(255, 122, 26, 0.02) 52%, transparent 72%);
+  filter: blur(20px);
+  transform: translateY(12px) scaleX(1.02);
+  opacity: 0.9;
 }
 
 .hero-radar {
   position: relative;
-  width: min(62vw, 320px);
-  aspect-ratio: 1;
+  width: 100%;
+  height: 100%;
   display: grid;
   place-items: center;
+  transform-style: preserve-3d;
+  transform: rotateX(67deg) rotateZ(-8deg);
   animation: hero-settle 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
@@ -101,7 +129,9 @@ const emit = defineEmits(['primary-action', 'secondary-action'])
 .hero-radar__ring {
   border-radius: 50%;
   border: 1px solid rgba(255, 122, 26, 0.12);
-  box-shadow: inset 0 0 24px rgba(255, 122, 26, 0.03);
+  box-shadow:
+    inset 0 0 24px rgba(255, 122, 26, 0.03),
+    0 0 18px rgba(255, 122, 26, 0.03);
 }
 
 .hero-radar__ring--outer {
@@ -122,6 +152,7 @@ const emit = defineEmits(['primary-action', 'secondary-action'])
   box-shadow:
     0 0 0 4px rgba(255, 122, 26, 0.04),
     0 0 22px rgba(255, 122, 26, 0.16);
+  transform: translateZ(24px);
 }
 
 .hero-radar__node::before {
@@ -167,6 +198,42 @@ const emit = defineEmits(['primary-action', 'secondary-action'])
   transform-origin: top center;
   transform: rotate(4deg);
   box-shadow: 0 0 22px rgba(255, 122, 26, 0.22);
+}
+
+.hero-radar__sweep {
+  inset: 18%;
+  border-radius: 50%;
+  background:
+    conic-gradient(from 210deg, rgba(255, 122, 26, 0) 0deg, rgba(255, 122, 26, 0.02) 120deg, rgba(255, 146, 74, 0.18) 158deg, rgba(255, 210, 180, 0.28) 172deg, rgba(255, 122, 26, 0.02) 184deg, rgba(255, 122, 26, 0) 360deg);
+  mask-image: radial-gradient(circle, transparent 36%, black 37%, black 78%, transparent 79%);
+  animation: radar-sweep 4.4s linear infinite;
+  opacity: 0.82;
+}
+
+.hero-radar__trail {
+  left: calc(50% - 1px);
+  top: 50%;
+  width: 2px;
+  height: 42%;
+  background: linear-gradient(180deg, rgba(255, 122, 26, 0.85), rgba(255, 122, 26, 0.06));
+  transform-origin: top center;
+  transform: rotate(182deg);
+  box-shadow: 0 0 24px rgba(255, 122, 26, 0.18);
+  opacity: 0.8;
+}
+
+.hero-radar__ping {
+  border-radius: 50%;
+  border: 1px solid rgba(255, 168, 108, 0.18);
+  background: radial-gradient(circle, rgba(255, 168, 108, 0.08), transparent 70%);
+}
+
+.hero-radar__ping--top {
+  width: 54px;
+  height: 54px;
+  left: calc(42% - 14px);
+  top: calc(20% - 14px);
+  animation: radar-ping 2.8s ease-out infinite;
 }
 
 .hero-copy {
@@ -294,11 +361,34 @@ const emit = defineEmits(['primary-action', 'secondary-action'])
 @keyframes hero-settle {
   from {
     opacity: 0;
-    transform: translateY(22px) scale(0.98);
+    transform: rotateX(67deg) rotateZ(-8deg) translateY(22px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: rotateX(67deg) rotateZ(-8deg) translateY(0) scale(1);
+  }
+}
+
+@keyframes radar-sweep {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes radar-ping {
+  0% {
+    transform: scale(0.42);
+    opacity: 0;
+  }
+  28% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
   }
 }
 
@@ -312,8 +402,8 @@ const emit = defineEmits(['primary-action', 'secondary-action'])
     gap: 20px;
   }
 
-  .hero-radar {
-    width: min(76vw, 280px);
+  .hero-radar-shell {
+    width: min(78vw, 300px);
   }
 
   .headline {
@@ -335,8 +425,8 @@ const emit = defineEmits(['primary-action', 'secondary-action'])
 }
 
 @media (max-width: 560px) {
-  .hero-radar {
-    width: min(78vw, 248px);
+  .hero-radar-shell {
+    width: min(82vw, 254px);
   }
 
   .hero-metrics {
