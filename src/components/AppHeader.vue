@@ -12,24 +12,21 @@ defineProps({
   <header class="app-header">
     <div class="header-shell">
       <div class="hero-copy">
-        <div class="brand-row">
-          <FuelRadarLogo :size="58" />
+        <div class="hero-title-wrap">
+          <div class="brand-row">
+            <FuelRadarLogo :size="78" />
 
-          <div class="brand-copy">
-            <div class="brand-topline">
-              <span class="eyebrow">Fuel Radar</span>
-              <span class="status-pill" :class="liveReady ? 'status-pill--live' : 'status-pill--fallback'">
-                {{ liveReady ? 'MIMIT Live' : 'Fallback' }}
-              </span>
+            <div class="brand-copy">
+              <div class="brand-topline">
+                <span class="status-pill" :class="liveReady ? 'status-pill--live' : 'status-pill--fallback'">
+                  {{ liveReady ? 'MIMIT Live' : 'Fallback' }}
+                </span>
+              </div>
+
+              <h1 class="title">Fuel Radar</h1>
             </div>
-
-            <h1 class="title">Il radar carburante pensato per trovare il pieno giusto più in fretta.</h1>
           </div>
         </div>
-
-        <p class="subtitle">
-          Cerca per indirizzo o posizione attuale, visualizza i distributori sulla mappa e apri subito la stazione scelta nelle mappe.
-        </p>
       </div>
 
       <div class="hero-metrics">
@@ -65,38 +62,57 @@ defineProps({
   margin: 0 auto;
   display: grid;
   gap: 18px;
+  position: relative;
+  isolation: isolate;
+}
+
+.header-shell::before {
+  content: '';
+  position: absolute;
+  inset: -24px 0 auto;
+  height: 180px;
+  background:
+    radial-gradient(circle at 12% 24%, rgba(255, 145, 72, 0.18), transparent 32%),
+    radial-gradient(circle at 82% 12%, rgba(255, 122, 26, 0.16), transparent 28%);
+  filter: blur(12px);
+  z-index: -1;
+  pointer-events: none;
 }
 
 .hero-copy {
   display: grid;
   gap: 14px;
+  padding: 8px 2px 0;
+}
+
+.hero-title-wrap {
+  display: grid;
+  place-items: center;
 }
 
 .brand-row {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  text-align: center;
+  animation: hero-float-in 760ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .brand-copy {
   display: grid;
-  gap: 10px;
+  gap: 8px;
+  justify-items: start;
   max-width: 760px;
 }
 
 .brand-topline {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   flex-wrap: wrap;
-}
-
-.eyebrow {
-  color: rgba(255, 190, 148, 0.92);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  width: 100%;
 }
 
 .status-pill {
@@ -120,18 +136,29 @@ defineProps({
 }
 
 .title {
-  font-size: clamp(2rem, 4vw, 4rem);
-  line-height: 0.98;
-  letter-spacing: -0.06em;
+  font-size: clamp(3.3rem, 9vw, 7rem);
+  line-height: 0.9;
+  letter-spacing: -0.08em;
   color: #fff6ef;
-  max-width: 12ch;
+  max-width: none;
+  text-wrap: balance;
+  text-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.3),
+    0 0 30px rgba(255, 122, 26, 0.14);
+  position: relative;
 }
 
-.subtitle {
-  max-width: 62ch;
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 1.02rem;
-  line-height: 1.72;
+.title::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  width: min(220px, 48%);
+  height: 10px;
+  border-radius: 999px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, rgba(255, 122, 26, 0.58), transparent);
+  filter: blur(6px);
 }
 
 .hero-metrics {
@@ -141,6 +168,8 @@ defineProps({
 }
 
 .metric-card {
+  position: relative;
+  overflow: hidden;
   padding: 18px 18px 16px;
   border-radius: 22px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -152,6 +181,40 @@ defineProps({
     0 20px 40px rgba(0, 0, 0, 0.16);
   display: grid;
   gap: 6px;
+  transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 10%, rgba(255, 255, 255, 0.06) 44%, transparent 80%);
+  transform: translateX(-120%);
+  transition: transform 780ms ease;
+  pointer-events: none;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 122, 26, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 26px 44px rgba(0, 0, 0, 0.2);
+}
+
+.metric-card:hover::before {
+  transform: translateX(120%);
+}
+
+@keyframes hero-float-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .metric-label {
@@ -181,7 +244,7 @@ defineProps({
   }
 
   .title {
-    max-width: 14ch;
+    font-size: clamp(2.8rem, 10vw, 5.4rem);
   }
 
   .hero-metrics {
@@ -196,14 +259,11 @@ defineProps({
 
   .brand-row {
     gap: 14px;
+    align-items: center;
   }
 
   .title {
-    font-size: 2.1rem;
-  }
-
-  .subtitle {
-    font-size: 0.96rem;
+    font-size: 3rem;
   }
 }
 </style>
