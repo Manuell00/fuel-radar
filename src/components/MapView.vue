@@ -263,7 +263,13 @@ onMounted(async () => {
     scrollWheelZoom: false,
   })
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    subdomains: 'abcd',
+    maxZoom: 19,
+  }).addTo(map)
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; OpenStreetMap &copy; CARTO',
     subdomains: 'abcd',
     maxZoom: 19,
@@ -301,13 +307,26 @@ watch(
 <template>
   <section class="map-view">
     <div class="map-copy">
-      <h2 class="map-title">Radar Rifornimenti</h2>
+      <h2 class="map-title">Radar</h2>
       <p class="map-subtitle">
         Tocca un marker o una riga della lista per vedere il distributore, la distanza, il tempo stimato e i prezzi disponibili.
       </p>
     </div>
 
     <div class="map-stage">
+      <div class="map-orb map-orb--left" aria-hidden="true"></div>
+      <div class="map-orb map-orb--right" aria-hidden="true"></div>
+      <div class="map-noise" aria-hidden="true"></div>
+
+      <div class="map-hud map-hud--top" aria-hidden="true">
+        <span class="hud-pill">Live area</span>
+        <span class="hud-pill hud-pill--accent">Premium map</span>
+      </div>
+
+      <div class="map-hud map-hud--bottom" aria-hidden="true">
+        <span class="hud-caption">Scena mappa ottimizzata per selezione rapida e lettura prezzi</span>
+      </div>
+
       <div ref="mapEl" class="map-canvas"></div>
     </div>
   </section>
@@ -358,13 +377,15 @@ watch(
 .map-stage {
   position: relative;
   min-height: 500px;
-  border-radius: 24px;
+  border-radius: 30px;
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
-    rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025)),
+    linear-gradient(135deg, rgba(14, 16, 22, 0.94), rgba(23, 28, 36, 0.88));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 30px 60px rgba(0, 0, 0, 0.24);
 }
 
 .map-stage::before {
@@ -372,25 +393,151 @@ watch(
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 50% 0%, rgba(255, 122, 26, 0.12), transparent 24%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 30%);
+    radial-gradient(circle at 50% 0%, rgba(255, 122, 26, 0.16), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 30%);
   pointer-events: none;
-  z-index: 2;
+  z-index: 4;
 }
 
 .map-stage::after {
   content: '';
   position: absolute;
   inset: auto 0 0;
-  height: 84px;
-  background: linear-gradient(180deg, transparent, rgba(7, 8, 11, 0.1));
+  height: 120px;
+  background: linear-gradient(180deg, transparent, rgba(7, 8, 11, 0.22));
+  pointer-events: none;
+  z-index: 4;
+}
+
+.map-orb {
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  filter: blur(20px);
+  opacity: 0.38;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.map-orb--left {
+  left: -70px;
+  bottom: -90px;
+  background: radial-gradient(circle, rgba(255, 122, 26, 0.34), transparent 70%);
+}
+
+.map-orb--right {
+  right: -80px;
+  top: -90px;
+  background: radial-gradient(circle, rgba(98, 182, 255, 0.22), transparent 70%);
+}
+
+.map-noise {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.22), transparent 85%);
+  opacity: 0.22;
   pointer-events: none;
   z-index: 2;
+}
+
+.map-hud {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.map-hud--top {
+  top: 18px;
+}
+
+.map-hud--bottom {
+  bottom: 18px;
+  justify-content: center;
+}
+
+.hud-pill,
+.hud-caption {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  color: #11151c;
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.12);
+}
+
+.hud-pill {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hud-pill--accent {
+  background: rgba(255, 141, 57, 0.88);
+  color: white;
+  border-color: rgba(255, 141, 57, 0.8);
+}
+
+.hud-caption {
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: rgba(17, 21, 28, 0.86);
 }
 
 .map-canvas {
   width: 100%;
   height: 500px;
+  position: relative;
+  z-index: 3;
+}
+
+.map-canvas:deep(.leaflet-container) {
+  background: #e9ecef;
+}
+
+.map-canvas:deep(.leaflet-pane.leaflet-tile-pane) {
+  filter: grayscale(0.08) saturate(0.92) contrast(1.04) brightness(1.02);
+}
+
+.map-canvas:deep(.leaflet-control-zoom) {
+  margin: 18px 18px 0 0;
+}
+
+.map-canvas:deep(.leaflet-control-attribution) {
+  margin-bottom: 12px;
+  margin-right: 12px;
+}
+
+.map-canvas:deep(.leaflet-marker-pane),
+.map-canvas:deep(.leaflet-overlay-pane) {
+  animation: map-settle-in 860ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes map-settle-in {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @media (max-width: 720px) {
@@ -402,6 +549,30 @@ watch(
   .map-canvas {
     min-height: 360px;
     height: 360px;
+  }
+
+  .map-stage {
+    border-radius: 24px;
+  }
+
+  .map-hud {
+    left: 12px;
+    right: 12px;
+  }
+
+  .map-hud--top {
+    top: 12px;
+  }
+
+  .map-hud--bottom {
+    bottom: 12px;
+  }
+
+  .hud-pill,
+  .hud-caption {
+    min-height: 30px;
+    padding: 0 11px;
+    font-size: 0.7rem;
   }
 }
 </style>
