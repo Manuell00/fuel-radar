@@ -81,4 +81,19 @@ const emit = defineEmits(['select-station'])
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 560px) {
+  .top-cards {
+    gap: 18px;
+  }
+
+  .section-head {
+    gap: 8px;
+  }
+
+  .section-title {
+    font-size: 1.02rem;
+    line-height: 1.35;
+  }
+}
 </style>

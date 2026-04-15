@@ -701,11 +701,36 @@ onUnmounted(() => {
 
   .search-title {
     max-width: none;
-    font-size: 2rem;
+    font-size: clamp(1.8rem, 9vw, 2.35rem);
+  }
+
+  .search-subtitle {
+    font-size: 0.92rem;
+    line-height: 1.55;
+  }
+
+  .search-btn {
+    width: 100%;
   }
 
   .search-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .ghost-btn {
+    width: 100%;
     justify-content: center;
+  }
+
+  .search-notice {
+    width: 100%;
+    justify-content: flex-start;
+    border-radius: 18px;
+  }
+
+  .results-panel {
+    border-radius: 18px;
   }
 }
 </style>

@@ -103,8 +103,34 @@ const emit = defineEmits(['retry', 'close'])
   }
 
   .banner {
+    padding: 14px 15px;
     align-items: flex-start;
     flex-direction: column;
+    gap: 12px;
+  }
+
+  .banner-actions {
+    width: 100%;
+  }
+
+  .banner-btn {
+    flex: 1 1 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .banner-message {
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .banner-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .banner-btn {
+    width: 100%;
   }
 }
 </style>

@@ -259,6 +259,11 @@ defineProps({
 @media (max-width: 820px) {
   .header-shell {
     width: min(100%, calc(100% - 20px));
+    gap: 28px;
+  }
+
+  .hero-copy {
+    padding: 10px 2px 6px;
   }
 
   .title {
@@ -272,21 +277,47 @@ defineProps({
 
 @media (max-width: 560px) {
   .app-header {
-    padding-top: 28px;
+    padding: 28px 0 26px;
+  }
+
+  .header-shell {
+    gap: 22px;
   }
 
   .brand-row {
-    gap: 14px;
+    gap: 12px;
     align-items: center;
   }
 
+  .brand-copy {
+    justify-items: center;
+  }
+
+  .brand-logo-wrap {
+    transform: scale(0.82);
+    transform-origin: center;
+  }
+
   .title {
-    font-size: 3rem;
+    font-size: clamp(2.4rem, 11vw, 3rem);
   }
 
   .title::after {
     bottom: -22px;
     width: min(240px, 84%);
+  }
+
+  .metric-card {
+    padding: 18px 16px 17px;
+    border-radius: 20px;
+  }
+
+  .metric-value {
+    font-size: clamp(1.9rem, 8vw, 2.6rem);
+  }
+
+  .metric-value--search {
+    font-size: 1.1rem;
   }
 }
 </style>

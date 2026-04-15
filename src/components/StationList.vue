@@ -233,8 +233,15 @@ function estimateMinutes(distanceKm) {
 }
 
 @media (max-width: 720px) {
+  .section-title {
+    font-size: 1.02rem;
+    line-height: 1.35;
+  }
+
   .list-item {
     flex-direction: column;
+    padding: 16px;
+    gap: 14px;
   }
 
   .item-main {
@@ -244,6 +251,28 @@ function estimateMinutes(distanceKm) {
   .map-link {
     min-height: 42px;
     width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .item-main {
+    gap: 12px;
+  }
+
+  .rank {
+    width: 30px;
+    height: 30px;
+    font-size: 0.86rem;
+  }
+
+  .item-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .item-price {
+    font-size: 1.15rem;
   }
 }
 </style>

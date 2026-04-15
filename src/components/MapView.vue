@@ -545,6 +545,19 @@ watch(
     padding: 22px 18px;
   }
 
+  .map-copy {
+    gap: 10px;
+  }
+
+  .map-title {
+    font-size: clamp(1.8rem, 8vw, 2.35rem);
+  }
+
+  .map-subtitle {
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+
   .map-stage,
   .map-canvas {
     min-height: 360px;
@@ -573,6 +586,32 @@ watch(
     min-height: 30px;
     padding: 0 11px;
     font-size: 0.7rem;
+  }
+
+  .map-hud--top {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .map-view {
+    padding: 20px 16px;
+    gap: 18px;
+  }
+
+  .map-stage,
+  .map-canvas {
+    min-height: 320px;
+    height: 320px;
+  }
+
+  .map-stage {
+    border-radius: 22px;
+  }
+
+  .map-hud--bottom {
+    display: none;
   }
 }
 </style>

@@ -379,6 +379,11 @@ function selectStation(station) {
     padding-bottom: 44px;
   }
 
+  .hero-stack {
+    gap: 20px;
+    margin-bottom: 26px;
+  }
+
   .filters-wrap,
   .map-wrap,
   .empty-state {
@@ -387,6 +392,22 @@ function selectStation(station) {
 
   .dashboard {
     gap: 24px;
+  }
+
+  .results-wrap {
+    gap: 22px;
+  }
+}
+
+@media (max-width: 560px) {
+  .loading-panel {
+    min-height: 300px;
+    border-radius: 24px;
+  }
+
+  .empty-state {
+    min-height: 210px;
+    padding: 28px 20px;
   }
 }
 </style>

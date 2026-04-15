@@ -293,6 +293,26 @@ function sliderPct(value) {
 @media (max-width: 560px) {
   .filter-bar {
     padding: 22px 18px;
+    gap: 20px;
+  }
+
+  .filter-title {
+    font-size: clamp(1.8rem, 9vw, 2.4rem);
+  }
+
+  .filter-group {
+    padding: 16px 14px;
+    border-radius: 18px;
+  }
+
+  .chips {
+    width: 100%;
+  }
+
+  .chip {
+    flex: 1 1 74px;
+    min-width: 0;
+    padding: 0 10px;
   }
 }
 </style>

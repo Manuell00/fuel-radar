@@ -191,4 +191,35 @@ function selectCard() {
 .action-btn:hover {
   transform: translateY(-1px);
 }
+
+@media (max-width: 720px) {
+  .card {
+    gap: 14px;
+  }
+
+  .card-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .action-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .card {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .card-title {
+    font-size: 0.96rem;
+    line-height: 1.35;
+  }
+
+  .price {
+    font-size: 1.7rem;
+  }
+}
 </style>
