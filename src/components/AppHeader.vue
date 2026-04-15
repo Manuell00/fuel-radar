@@ -14,10 +14,12 @@ defineProps({
       <div class="hero-copy">
         <div class="hero-title-wrap">
           <div class="brand-row">
-            <FuelRadarLogo :size="78" />
-
             <div class="brand-copy">
               <h1 class="title">Fuel Radar</h1>
+            </div>
+
+            <div class="brand-logo-wrap" aria-hidden="true">
+              <FuelRadarLogo :size="86" />
             </div>
           </div>
         </div>
@@ -88,9 +90,9 @@ defineProps({
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 18px;
+  gap: 22px;
   text-align: center;
-  animation: hero-float-in 760ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: hero-float-in 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .brand-copy {
@@ -98,6 +100,21 @@ defineProps({
   gap: 8px;
   justify-items: start;
   max-width: 760px;
+}
+
+.brand-logo-wrap {
+  position: relative;
+  animation: logo-drift 2.8s ease-in-out infinite;
+}
+
+.brand-logo-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -16px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 122, 26, 0.18), transparent 65%);
+  filter: blur(10px);
+  z-index: -1;
 }
 
 .title {
@@ -111,19 +128,27 @@ defineProps({
     0 10px 28px rgba(0, 0, 0, 0.3),
     0 0 30px rgba(255, 122, 26, 0.14);
   position: relative;
+  animation: title-pulse 3.8s ease-in-out infinite;
 }
 
 .title::after {
   content: '';
   position: absolute;
   left: 50%;
-  bottom: -10px;
-  width: min(220px, 48%);
-  height: 10px;
+  bottom: -18px;
+  width: min(320px, 72%);
+  height: 18px;
   border-radius: 999px;
   transform: translateX(-50%);
-  background: linear-gradient(90deg, transparent, rgba(255, 122, 26, 0.58), transparent);
-  filter: blur(6px);
+  background:
+    radial-gradient(circle at 15% 50%, rgba(255, 208, 163, 0.92) 0 10%, transparent 11%),
+    radial-gradient(circle at 36% 55%, rgba(255, 180, 114, 0.9) 0 10%, transparent 11%),
+    radial-gradient(circle at 58% 48%, rgba(255, 145, 72, 0.92) 0 11%, transparent 12%),
+    radial-gradient(circle at 82% 53%, rgba(255, 122, 26, 0.92) 0 10%, transparent 11%),
+    linear-gradient(90deg, transparent, rgba(255, 122, 26, 0.42) 12%, rgba(255, 167, 100, 0.9) 50%, rgba(255, 122, 26, 0.42) 88%, transparent);
+  filter: blur(4px);
+  opacity: 0.95;
+  animation: fuel-flow 3.2s ease-in-out infinite;
 }
 
 .hero-metrics {
@@ -174,11 +199,44 @@ defineProps({
 @keyframes hero-float-in {
   from {
     opacity: 0;
-    transform: translateY(18px) scale(0.985);
+    transform: translateY(24px) scale(0.972);
   }
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes title-pulse {
+  0%, 100% {
+    text-shadow:
+      0 10px 28px rgba(0, 0, 0, 0.3),
+      0 0 30px rgba(255, 122, 26, 0.14);
+  }
+  50% {
+    text-shadow:
+      0 12px 32px rgba(0, 0, 0, 0.32),
+      0 0 42px rgba(255, 122, 26, 0.22);
+  }
+}
+
+@keyframes fuel-flow {
+  0%, 100% {
+    transform: translateX(-50%) scaleX(0.98);
+    opacity: 0.88;
+  }
+  50% {
+    transform: translateX(-50%) scaleX(1.04);
+    opacity: 1;
+  }
+}
+
+@keyframes logo-drift {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(1.5deg);
   }
 }
 
@@ -229,6 +287,10 @@ defineProps({
 
   .title {
     font-size: 3rem;
+  }
+
+  .title::after {
+    width: min(240px, 84%);
   }
 }
 </style>
