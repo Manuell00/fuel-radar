@@ -109,9 +109,9 @@ export function useGeolocation() {
       return
     }
 
-    const permissionState = await getPermissionState()
-
     if (!userInitiated && browserContext.isInAppBrowser) {
+      const permissionState = await getPermissionState()
+
       try {
         position.value = await getApproximatePosition()
         isFallback.value = true
@@ -140,6 +140,8 @@ export function useGeolocation() {
         loading.value   = false
         return
       } catch {
+        const permissionState = await getPermissionState()
+
         try {
           position.value  = await getApproximatePosition()
           isFallback.value = true
