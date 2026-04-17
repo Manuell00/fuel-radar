@@ -532,7 +532,7 @@ onUnmounted(() => {
             <div class="filter-modal__body">
               <div class="map-filter-group">
                 <span class="map-filter-label">Carburante</span>
-                <div class="map-filter-chips map-filter-chips--equal">
+                <div class="map-filter-chips map-filter-chips--equal map-filter-chips--fuel">
                   <button
                     v-for="option in fuelOptions"
                     :key="option.value"
@@ -548,7 +548,7 @@ onUnmounted(() => {
 
               <div class="map-filter-group">
                 <span class="map-filter-label">Modalita</span>
-                <div class="map-filter-chips map-filter-chips--equal">
+                <div class="map-filter-chips map-filter-chips--equal map-filter-chips--mode">
                   <button
                     v-for="option in modeOptions"
                     :key="option.value"
@@ -917,6 +917,14 @@ onUnmounted(() => {
 .map-filter-chips--equal {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+}
+
+.map-filter-chips--fuel {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.map-filter-chips--mode {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .map-chip {

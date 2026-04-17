@@ -720,10 +720,10 @@ function notifyFavoriteWinner() {
                         </button>
                       </div>
 
-                      <div class="filter-modal__body">
+                      <div class="filter-modal__body filter-modal__body--savings">
                         <div class="map-filter-group">
                           <span class="map-filter-label">Carburante</span>
-                          <div class="map-filter-chips map-filter-chips--equal">
+                          <div class="map-filter-chips map-filter-chips--equal map-filter-chips--fuel">
                             <button
                               v-for="option in savingsFuelOptions"
                               :key="option.value"
@@ -739,7 +739,7 @@ function notifyFavoriteWinner() {
 
                         <div class="map-filter-group">
                           <span class="map-filter-label">Modalita</span>
-                          <div class="map-filter-chips map-filter-chips--equal">
+                          <div class="map-filter-chips map-filter-chips--equal map-filter-chips--mode">
                             <button
                               v-for="option in savingsModeOptions"
                               :key="option.value"
@@ -1514,6 +1514,14 @@ function notifyFavoriteWinner() {
   grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
 }
 
+.map-filter-chips--fuel {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.map-filter-chips--mode {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .map-filter-chips--amount {
   flex-wrap: nowrap;
 }
@@ -1602,6 +1610,10 @@ function notifyFavoriteWinner() {
 }
 
 @media (min-width: 1025px) {
+  .filter-modal__body--savings {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .map-filter-group--range {
     justify-items: center;
   }
