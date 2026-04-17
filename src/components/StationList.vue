@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { formatDistance } from '../utils/distance.js'
 import { hapticLight, hapticMedium } from '../utils/haptic.js'
 import { shareStation } from '../utils/share.js'
@@ -41,8 +41,19 @@ const fuelNames = {
   gpl: 'GPL',
 }
 
-const visibleStations = computed(() => props.stations)
+const desktopResultsLimit = 9
+const showAllDesktopResults = ref(false)
+const isDesktopLayout = ref(false)
+
+let desktopMediaQuery = null
+
+const visibleStations = computed(() => {
+  if (!isDesktopLayout.value || showAllDesktopResults.value) return props.stations
+  return props.stations.slice(0, desktopResultsLimit)
+})
 const resultsCountLabel = computed(() => `${props.stations.length} estratti`)
+const hasDesktopOverflow = computed(() => isDesktopLayout.value && props.stations.length > desktopResultsLimit)
+const hiddenResultsCount = computed(() => Math.max(0, props.stations.length - desktopResultsLimit))
 
 function stationDisplayName(station) {
   const brand = (station.brand || '').trim()
@@ -62,6 +73,39 @@ function mapsUrl(station) {
 function estimateMinutes(distanceKm) {
   return Math.max(2, Math.round((distanceKm / 42) * 60))
 }
+
+function handleDesktopLayoutChange(event) {
+  isDesktopLayout.value = event.matches
+  if (!event.matches) {
+    showAllDesktopResults.value = true
+  } else {
+    showAllDesktopResults.value = false
+  }
+}
+
+function showAllResults() {
+  showAllDesktopResults.value = true
+}
+
+watch(
+  () => props.stations.length,
+  () => {
+    if (isDesktopLayout.value) {
+      showAllDesktopResults.value = false
+    }
+  }
+)
+
+onMounted(() => {
+  desktopMediaQuery = window.matchMedia('(min-width: 1025px)')
+  isDesktopLayout.value = desktopMediaQuery.matches
+  showAllDesktopResults.value = !desktopMediaQuery.matches
+  desktopMediaQuery.addEventListener('change', handleDesktopLayoutChange)
+})
+
+onUnmounted(() => {
+  desktopMediaQuery?.removeEventListener('change', handleDesktopLayoutChange)
+})
 </script>
 
 <template>
@@ -142,6 +186,13 @@ function estimateMinutes(distanceKm) {
         </article>
       </li>
     </ul>
+
+    <div v-if="hasDesktopOverflow && !showAllDesktopResults" class="results-actions">
+      <button class="results-expand-btn" type="button" @click="showAllResults">
+        Visualizza tutto
+        <span class="results-expand-btn__count">+{{ hiddenResultsCount }}</span>
+      </button>
+    </div>
   </section>
 </template>
 
@@ -205,6 +256,54 @@ function estimateMinutes(distanceKm) {
   list-style: none;
   display: grid;
   gap: 16px;
+}
+
+.results-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.results-expand-btn {
+  min-height: 46px;
+  padding: 0 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+    rgba(14, 17, 23, 0.76);
+  color: #fff6ef;
+  font: inherit;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 18px 32px rgba(0, 0, 0, 0.16);
+  transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+}
+
+.results-expand-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 178, 117, 0.26);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 22px 36px rgba(0, 0, 0, 0.18);
+}
+
+.results-expand-btn__count {
+  min-width: 34px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 214, 181, 0.92);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
 }
 
 .list-item-wrap {
@@ -515,6 +614,10 @@ function estimateMinutes(distanceKm) {
 
   .list-item-wrap {
     scroll-snap-align: start;
+  }
+
+  .results-actions {
+    display: none;
   }
 
   .list-item {
