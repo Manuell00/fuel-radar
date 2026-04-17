@@ -487,7 +487,7 @@ onUnmounted(() => {
             @click="isUsingGps ? emit('disable-geo') : emit('retry-geo')"
           >
             <span class="geo-inline-btn__icon" aria-hidden="true">{{ isUsingGps ? '●' : '◎' }}</span>
-            <span class="geo-inline-btn__label">Mia posizione</span>
+            <span class="geo-inline-btn__label">{{ isUsingGps ? 'Mia posizione' : 'Attiva GPS' }}</span>
           </button>
         </div>
 

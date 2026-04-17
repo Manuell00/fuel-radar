@@ -258,6 +258,15 @@ function handleScroll() {
   hasScrolled.value = window.scrollY > 40
 }
 
+function shouldAutoRequestLocation() {
+  if (typeof window === 'undefined') return false
+
+  const coarsePointer = window.matchMedia?.('(pointer: coarse)')?.matches ?? false
+  const touchCapable = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+
+  return !(coarsePointer || touchCapable)
+}
+
 function checkDrivingMode() {
   const isTouch = navigator.maxTouchPoints > 0 || 'ontouchstart' in window
   const isLandscape = window.innerWidth > window.innerHeight
@@ -335,7 +344,9 @@ onMounted(async () => {
     showSplash.value = false
   }, 1550)
 
-  await requestLocation({ userInitiated: false })
+  if (shouldAutoRequestLocation()) {
+    await requestLocation({ userInitiated: false })
+  }
 })
 
 onUnmounted(() => {
