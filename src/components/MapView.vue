@@ -507,7 +507,7 @@ onUnmounted(() => {
     <div class="map-copy">
       <p class="map-kicker">Radar</p>
       <p class="map-subtitle map-subtitle--desktop">
-        Tocca un marker o una riga della lista per vedere il distributore, la distanza, il tempo stimato e i prezzi disponibili.
+        Seleziona un marker o un risultato per confrontare distributore, distanza, tempo stimato e prezzi disponibili.
       </p>
       <p class="map-subtitle map-subtitle--mobile">
         Tocca un marker per vedere distanza, tempi e prezzi.
@@ -760,6 +760,27 @@ onUnmounted(() => {
   font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.01em;
+}
+
+@media (min-width: 1025px) {
+  .map-copy {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .map-kicker::after {
+    margin: 0;
+  }
+
+  .map-filter-trigger {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .map-filter-trigger__copy {
+    justify-content: flex-start;
+  }
 }
 
 .map-filter-group {

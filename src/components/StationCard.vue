@@ -174,6 +174,7 @@ const trendDelta = computed(() => {
 .card--best { border-color: rgba(225, 170, 131, 0.22); }
 
 .card--featured {
+  padding: 20px;
   box-shadow:
     0 26px 52px rgba(0, 0, 0, 0.24),
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
@@ -182,16 +183,18 @@ const trendDelta = computed(() => {
 .card--featured .card-top {
   min-height: 34px;
   align-items: start;
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .card--featured .card-body {
   width: 100%;
-  justify-items: center;
+  justify-items: start;
+  gap: 12px;
 }
 
 .card--featured .card-heading {
-  max-width: 18ch;
-  justify-content: center;
+  max-width: 100%;
+  justify-content: flex-start;
 }
 
 .card--featured.card--cheapest {
@@ -244,7 +247,7 @@ const trendDelta = computed(() => {
 .card-label {
   font-size: 0.8rem;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   line-height: 1.15;
   color: #fff8f2;
@@ -393,6 +396,12 @@ const trendDelta = computed(() => {
   text-transform: uppercase;
 }
 
+.card--featured .card-brand-inline,
+.card--featured .card-title,
+.card--featured .card-address {
+  text-align: left;
+}
+
 .card-heading-divider {
   width: 1px;
   height: 0.95em;
@@ -412,6 +421,27 @@ const trendDelta = computed(() => {
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
+}
+
+.card--featured .card-stats {
+  width: 100%;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.card--featured .price-row {
+  display: grid;
+  gap: 4px;
+}
+
+.card--featured .price {
+  font-size: clamp(2.2rem, 2vw, 2.6rem);
+}
+
+.card--featured .distance-pill {
+  min-height: 40px;
+  padding: 0 14px;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .price {
@@ -470,6 +500,10 @@ const trendDelta = computed(() => {
     background var(--transition),
     box-shadow var(--transition),
     color var(--transition);
+}
+
+.card--featured .card-actions {
+  grid-template-columns: 1fr 1fr;
 }
 
 .action-btn--primary {
@@ -540,6 +574,20 @@ const trendDelta = computed(() => {
   .card--featured .card-top-actions {
     position: static;
     width: auto;
+  }
+
+  .card--featured .card-body {
+    justify-items: center;
+  }
+
+  .card--featured .card-heading {
+    justify-content: center;
+  }
+
+  .card--featured .card-brand-inline,
+  .card--featured .card-title,
+  .card--featured .card-address {
+    text-align: center;
   }
 
   .card-label {

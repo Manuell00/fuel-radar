@@ -12,6 +12,7 @@ import { useGeolocation } from './composables/useGeolocation.js'
 import { useStations } from './composables/useStations.js'
 
 const manualLocation = ref(null)
+const geoDisabled = ref(false)
 const selectedStation = ref(null)
 const dismissedBanner = ref('')
 const mapWrapRef = ref(null)
@@ -53,8 +54,11 @@ const effectivePosition = computed(() => {
   if (manualLocation.value) {
     return { lat: manualLocation.value.lat, lng: manualLocation.value.lng }
   }
+  if (geoDisabled.value) return null
   return position.value
 })
+
+const isUsingGps = computed(() => !manualLocation.value && !geoDisabled.value && !!position.value)
 
 const {
   filters,
@@ -390,8 +394,13 @@ function clearManualLocation() {
 }
 
 async function useCurrentLocation() {
+  geoDisabled.value = false
   clearManualLocation()
   await requestLocation()
+}
+
+function handleDisableGeo() {
+  geoDisabled.value = true
 }
 
 function dismissCurrentBanner() {
@@ -410,7 +419,8 @@ async function handleBannerRetry() {
 async function selectStation(station, options = {}) {
   selectedStation.value = station
 
-  if (!options.scrollToMap) return
+  // Desktop keeps the map visible, so forced scrolling is only useful in compact layouts.
+  if (!options.scrollToMap || !isCompactLayout.value) return
 
   currentPage.value = 'home'
   await nextTick()
@@ -557,11 +567,7 @@ function notifyFavoriteWinner() {
     <div class="page-grid" aria-hidden="true"></div>
 
     <div class="page-content">
-      <AppHeader
-        v-if="showHomeChrome"
-        :station-count="stationCount"
-        :search-mode="searchMode"
-      />
+      <AppHeader v-if="showHomeChrome" />
 
       <Transition name="banner-fade">
         <LocationBanner
@@ -586,9 +592,11 @@ function notifyFavoriteWinner() {
           <LocationSearch
             :manual-location="manualLocation"
             :current-position="position"
+            :is-using-gps="isUsingGps"
             @select-location="handleSelectLocation"
             @clear-manual="clearManualLocation"
             @retry-geo="useCurrentLocation"
+            @disable-geo="handleDisableGeo"
           />
         </section>
 
@@ -611,65 +619,79 @@ function notifyFavoriteWinner() {
             <p class="loading-label">{{ loadingLabel }}</p>
           </section>
 
-          <section v-else-if="currentPage === 'home'" key="home" class="dashboard">
-            <div ref="mapWrapRef" class="map-wrap surface-enter surface-enter--delay-2">
-              <MapView
-                :user-position="effectivePosition"
-                :stations="sorted"
-                :selected-station="selectedStation"
-                :favorite-ids="favoriteIds"
-                :cheapest="cheapest"
-                :nearest="nearest"
-                :best-compromise="bestCompromise"
-                :filters="filters"
-                :radius="filters.radius"
-                @select-station="selectStation"
-                @toggle-favorite="toggleFavorite"
-                @update:filters="updateFilters"
-              />
+          <section v-else-if="currentPage === 'home'" key="home" class="home-page">
+            <!-- 2-col: mappa (sinistra) | in evidenza (destra) -->
+            <div class="dashboard surface-enter surface-enter--delay-2">
+              <!-- Colonna sinistra: Radar -->
+              <div class="map-col">
+                <div class="col-head">
+                  <span class="col-label">Radar</span>
+                </div>
+                <div ref="mapWrapRef" class="map-wrap">
+                  <MapView
+                    :user-position="effectivePosition"
+                    :stations="sorted"
+                    :selected-station="selectedStation"
+                    :favorite-ids="favoriteIds"
+                    :cheapest="cheapest"
+                    :nearest="nearest"
+                    :best-compromise="bestCompromise"
+                    :filters="filters"
+                    :radius="filters.radius"
+                    @select-station="selectStation"
+                    @toggle-favorite="toggleFavorite"
+                    @update:filters="updateFilters"
+                  />
+                </div>
+              </div>
+
+              <!-- Colonna destra: In evidenza -->
+              <div class="cards-col">
+                <div class="col-head">
+                  <span class="col-label">In evidenza</span>
+                </div>
+                <section
+                  v-if="cheapest || nearest || bestCompromise"
+                  class="surface-enter surface-enter--delay-3"
+                >
+                  <TopCards
+                    :cheapest="cheapest"
+                    :nearest="nearest"
+                    :best-compromise="bestCompromise"
+                    :favorite-ids="favoriteIds"
+                    :get-trend="getTrend"
+                    @select-station="(station) => selectStation(station, { scrollToMap: true })"
+                    @toggle-favorite="toggleFavorite"
+                  />
+                </section>
+              </div>
             </div>
 
-            <div class="results-wrap">
-              <section
-                v-if="cheapest || nearest || bestCompromise"
-                class="surface-enter surface-enter--delay-3"
-              >
-                <TopCards
-                  :cheapest="cheapest"
-                  :nearest="nearest"
-                  :best-compromise="bestCompromise"
-                  :favorite-ids="favoriteIds"
-                  :get-trend="getTrend"
-                  @select-station="(station) => selectStation(station, { scrollToMap: true })"
-                  @toggle-favorite="toggleFavorite"
-                />
-              </section>
+            <!-- Risultati full-width sotto la 2-col -->
+            <section v-if="sorted.length" class="results-row surface-enter surface-enter--delay-4">
+              <p v-if="lastUpdateLabel && !usingFallback" class="update-label">
+                <svg class="update-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9"/>
+                  <polyline points="12 7 12 12 15 14"/>
+                </svg>
+                {{ lastUpdateLabel }}
+              </p>
+              <StationList
+                :stations="sorted"
+                :selected-station-id="selectedStation?.id ?? null"
+                :favorite-ids="favoriteIds"
+                :get-trend="getTrend"
+                @select-station="(station) => selectStation(station, { scrollToMap: true })"
+                @toggle-favorite="toggleFavorite"
+              />
+            </section>
 
-              <section v-if="sorted.length" class="surface-enter surface-enter--delay-4">
-                <p v-if="lastUpdateLabel && !usingFallback" class="update-label">
-                  <svg class="update-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="9"/>
-                    <polyline points="12 7 12 12 15 14"/>
-                  </svg>
-                  {{ lastUpdateLabel }}
-                </p>
-                <StationList
-                  :stations="sorted"
-                  :selected-station-id="selectedStation?.id ?? null"
-                  :favorite-ids="favoriteIds"
-                  :get-trend="getTrend"
-                  @select-station="(station) => selectStation(station, { scrollToMap: true })"
-                  @toggle-favorite="toggleFavorite"
-                />
-              </section>
-
-              <div v-else class="empty-state surface-enter surface-enter--delay-3">
-                <FuelRadarLogo :size="56" />
-                <h2>Nessun distributore trovato</h2>
-                <p>
-                  Prova a cambiare raggio, usa un indirizzo diverso oppure riprova la posizione attuale.
-                </p>
-              </div>
+            <div v-else class="empty-state surface-enter surface-enter--delay-3">
+              <FuelRadarLogo :size="56" />
+              <h2>Nessun distributore trovato</h2>
+              <p>
+                Prova a cambiare raggio, usa un indirizzo diverso oppure riprova la posizione attuale.
+              </p>
             </div>
           </section>
 
@@ -1134,18 +1156,50 @@ function notifyFavoriteWinner() {
   backdrop-filter: blur(16px);
 }
 
-.dashboard {
+/* Home-page: contenitore verticale (2-col + results-row) */
+.home-page {
   display: grid;
   gap: 34px;
+}
+
+/* Dashboard: griglia 2-col su desktop, colonne impilate su mobile */
+.dashboard {
+  display: grid;
+  gap: 24px;
 }
 
 .dashboard--single {
   gap: 0;
 }
 
-.results-wrap {
+/* Colonne del dashboard */
+.map-col,
+.cards-col {
   display: grid;
-  gap: 56px;
+  gap: 0;
+  align-content: start;
+}
+
+/* Header di colonna: "Radar" e "In evidenza" — allineati */
+.col-head {
+  display: none; /* visibile solo da 900px */
+  align-items: center;
+  height: 36px;
+  margin-bottom: 14px;
+}
+
+.col-label {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* Risultati full-width sotto la 2-col */
+.results-row {
+  display: grid;
+  gap: 0;
 }
 
 .favorites-section,
@@ -1971,10 +2025,23 @@ function notifyFavoriteWinner() {
     font-weight: 400;
   }
 
-  .dashboard {
+  /* ── 2-col desktop ── */
+  .dashboard:not(.dashboard--single) {
     grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
     gap: 28px;
     align-items: start;
+  }
+
+  /* Centra dashboard singolo (risparmi / preferiti) */
+  .dashboard--single {
+    grid-template-columns: 1fr;
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .col-head {
+    display: flex;
   }
 
   .map-wrap {
@@ -1996,30 +2063,56 @@ function notifyFavoriteWinner() {
     display: none;
   }
 
-  .results-wrap {
-    gap: 36px;
+  /* Nasconde heading interno di TopCards (rimpiazzato dal col-head) */
+  .cards-col :deep(.section-head) {
+    display: none;
   }
 
-  .results-wrap :deep(.cards-grid) {
+  /* Cards: 1 colonna nella colonna stretta */
+  .cards-col :deep(.cards-grid) {
     grid-template-columns: 1fr;
   }
 
-  /* Risultati più aggraziati nella colonna stretta */
-  .results-wrap :deep(.list) {
-    gap: 14px;
+  /* Risultati full-width: 2-col grid per i risultati */
+  .results-row :deep(.list) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
   }
 }
 
-/* iPad landscape / laptop piccoli: 2-col ridotta, hero-intro compatta */
+@media (min-width: 1440px) {
+  .dashboard:not(.dashboard--single) {
+    grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+    gap: 32px;
+  }
+
+  .results-row :deep(.list) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+  }
+}
+
+/* iPad landscape / laptop piccoli: 2-col ridotta */
 @media (min-width: 900px) and (max-width: 1199px) {
   .main-shell {
     width: min(1024px, calc(100% - 32px));
   }
 
-  .dashboard {
+  .dashboard:not(.dashboard--single) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 22px;
     align-items: start;
+  }
+
+  .dashboard--single {
+    grid-template-columns: 1fr;
+    max-width: 820px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .col-head {
+    display: flex;
   }
 
   .map-wrap {
@@ -2041,7 +2134,11 @@ function notifyFavoriteWinner() {
     display: none;
   }
 
-  .results-wrap :deep(.cards-grid) {
+  .cards-col :deep(.section-head) {
+    display: none;
+  }
+
+  .cards-col :deep(.cards-grid) {
     grid-template-columns: 1fr;
   }
 }
@@ -2066,7 +2163,8 @@ function notifyFavoriteWinner() {
     margin-bottom: 6px;
   }
 
-  .dashboard {
+  .dashboard,
+  .home-page {
     gap: 12px;
   }
 
@@ -2111,6 +2209,14 @@ function notifyFavoriteWinner() {
     align-content: start;
   }
 
+  .col-head {
+    display: none;
+  }
+
+  .home-page {
+    gap: 24px;
+  }
+
   .page-titlebar--mobile {
     display: inline-flex;
     margin: 10px auto 4px;
@@ -2129,10 +2235,6 @@ function notifyFavoriteWinner() {
 
   .filter-modal__body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .results-wrap {
-    gap: 42px;
   }
 
   .favorites-grid {

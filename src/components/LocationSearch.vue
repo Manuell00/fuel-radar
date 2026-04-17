@@ -4,9 +4,10 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 const props = defineProps({
   manualLocation: { type: Object, default: null },
   currentPosition: { type: Object, default: null },
+  isUsingGps: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['select-location', 'clear-manual', 'retry-geo'])
+const emit = defineEmits(['select-location', 'clear-manual', 'retry-geo', 'disable-geo'])
 
 const query = ref('')
 const loading = ref(false)
@@ -38,27 +39,6 @@ const showSuccessNotice = computed(() =>
   helperText.value === 'Posizione attuale rilevata e applicata alla mappa.' ||
   helperText.value === 'Posizione attuale rilevata. Indirizzo preciso non disponibile.'
 )
-const locationStatus = computed(() => {
-  if (showSuccessNotice.value) {
-    return {
-      icon: '✓',
-      label: 'Posizione rilevata',
-      title: helperText.value,
-      className: 'search-status search-status--success',
-    }
-  }
-
-  if (!props.currentPosition && !props.manualLocation) {
-    return {
-      icon: '✕',
-      label: 'Posizione non disponibile',
-      title: 'Posizione attuale non rilevata.',
-      className: 'search-status search-status--error',
-    }
-  }
-
-  return null
-})
 const visibleHelperText = computed(() => (showSuccessNotice.value ? '' : helperText.value))
 const plannerTitle = computed(() => (props.manualLocation ? 'Modifica la ricerca' : 'Pianifica la ricerca'))
 function handleMobileLayoutChange(event) {
@@ -445,17 +425,6 @@ onUnmounted(() => {
 <template>
   <section class="location-search">
     <div class="search-shell">
-      <button
-        v-if="locationStatus && !isMobileLayout"
-        class="search-status-btn"
-        :class="locationStatus.className"
-        type="button"
-        :aria-label="locationStatus.label"
-      >
-        <span aria-hidden="true">{{ locationStatus.icon }}</span>
-        <span class="search-status-tooltip" role="tooltip">{{ locationStatus.title }}</span>
-      </button>
-
       <div class="search-form">
         <div class="search-top-row">
           <div class="search-input-wrap">
@@ -509,8 +478,15 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <button class="geo-inline-btn" type="button" aria-label="Usa la mia posizione attuale" @click="emit('retry-geo')">
-            <span class="geo-inline-btn__icon" aria-hidden="true">◎</span>
+          <button
+            class="geo-inline-btn"
+            :class="{ 'geo-inline-btn--active': isUsingGps }"
+            type="button"
+            :aria-label="isUsingGps ? 'Posizione attuale in uso — clicca per disattivarla' : 'Usa la mia posizione attuale'"
+            :title="isUsingGps ? 'GPS attivo — clicca per disattivare' : 'Usa la mia posizione'"
+            @click="isUsingGps ? emit('disable-geo') : emit('retry-geo')"
+          >
+            <span class="geo-inline-btn__icon" aria-hidden="true">{{ isUsingGps ? '●' : '◎' }}</span>
             <span class="geo-inline-btn__label">Mia posizione</span>
           </button>
         </div>
@@ -674,82 +650,6 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-.search-status-btn {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  z-index: 2;
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  border: 1px solid transparent;
-  font: inherit;
-  font-size: 0.86rem;
-  font-weight: 900;
-  cursor: help;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 12px 22px rgba(0, 0, 0, 0.12);
-}
-
-.search-status-tooltip {
-  position: absolute;
-  top: calc(100% + 10px);
-  right: 0;
-  min-width: max-content;
-  max-width: 220px;
-  padding: 0.65rem 0.8rem;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 160, 92, 0.22);
-  background: rgba(10, 12, 18, 0.96);
-  color: #fff3e8;
-  font-size: 0.78rem;
-  font-weight: 600;
-  line-height: 1.45;
-  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.22);
-  opacity: 0;
-  transform: translateY(-4px);
-  pointer-events: none;
-  transition: opacity 180ms ease, transform 180ms ease;
-}
-
-.search-status-tooltip::before {
-  content: '';
-  position: absolute;
-  top: -6px;
-  right: 12px;
-  width: 10px;
-  height: 10px;
-  background: rgba(10, 12, 18, 0.96);
-  border-top: 1px solid rgba(255, 160, 92, 0.22);
-  border-left: 1px solid rgba(255, 160, 92, 0.22);
-  transform: rotate(45deg);
-}
-
-.search-status-btn:hover .search-status-tooltip,
-.search-status-btn:focus-visible .search-status-tooltip {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.search-status {
-  color: white;
-}
-
-.search-status--success {
-  background: rgba(255, 122, 26, 0.18);
-  border-color: rgba(255, 160, 92, 0.28);
-}
-
-.search-status--error {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.14);
-  color: rgba(255, 235, 223, 0.88);
-}
-
 .search-form {
   display: flex;
   flex-direction: column;
@@ -864,6 +764,23 @@ onUnmounted(() => {
   border-color: rgba(255, 122, 26, 0.25);
   color: #ffffff;
   background: rgba(255,255,255,0.1);
+}
+
+/* Stato attivo: GPS in uso */
+.geo-inline-btn--active {
+  border-color: rgba(255, 122, 26, 0.5);
+  background: rgba(255, 122, 26, 0.14);
+  color: #ffb370;
+}
+
+.geo-inline-btn--active .geo-inline-btn__icon {
+  color: #ff8e39;
+}
+
+.geo-inline-btn--active:hover {
+  border-color: rgba(255, 122, 26, 0.65);
+  background: rgba(255, 122, 26, 0.2);
+  color: #ffc08a;
 }
 
 .search-actions {
@@ -1267,6 +1184,25 @@ onUnmounted(() => {
   0%, 74%, 100% { transform: translateX(-120%); opacity: 0; }
   10%, 34% { opacity: 1; }
   42% { transform: translateX(120%); opacity: 0; }
+}
+
+@media (min-width: 1025px) {
+  .location-search {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .search-form {
+    gap: 0.95rem;
+  }
+
+  .search-toolbar {
+    justify-items: start;
+  }
+
+  .search-meta {
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 1024px) {

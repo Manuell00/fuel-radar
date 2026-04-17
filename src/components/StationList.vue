@@ -156,8 +156,8 @@ function estimateMinutes(distanceKm) {
   display: grid;
   gap: 8px;
   margin-bottom: 8px;
-  justify-items: center;
-  text-align: center;
+  justify-items: start;
+  text-align: left;
 }
 
 .section-heading-wrap {
@@ -222,6 +222,18 @@ function estimateMinutes(distanceKm) {
   align-items: stretch;
   gap: 14px;
   transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+}
+
+.list-item::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  border-radius: 999px;
+  background: transparent;
+  transition: background var(--transition), box-shadow var(--transition);
 }
 
 .item-actions-top {
@@ -308,6 +320,12 @@ function estimateMinutes(distanceKm) {
   box-shadow: 0 22px 42px rgba(0, 0, 0, 0.22);
 }
 
+.list-item:hover::after,
+.list-item--active::after {
+  background: linear-gradient(180deg, rgba(255, 196, 148, 0.16), rgba(255, 122, 26, 0.95), rgba(255, 196, 148, 0.16));
+  box-shadow: 0 0 18px rgba(255, 122, 26, 0.18);
+}
+
 .list-item:hover::before,
 .list-item--active::before {
   transform: translateX(120%);
@@ -326,7 +344,7 @@ function estimateMinutes(distanceKm) {
 
 .item-copy {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   padding-right: 34px;
 }
 
@@ -373,6 +391,7 @@ function estimateMinutes(distanceKm) {
 }
 
 .item-price {
+  min-width: 84px;
   color: #fff6ef;
   font-size: 1.5rem;
   letter-spacing: -0.05em;
@@ -412,6 +431,8 @@ function estimateMinutes(distanceKm) {
 
 .map-link {
   min-width: 82px;
+  min-height: 44px;
+  padding: 0 14px;
   border-radius: 14px;
   display: inline-flex;
   align-items: center;
@@ -422,6 +443,22 @@ function estimateMinutes(distanceKm) {
   color: rgba(255, 255, 255, 0.82);
   font-weight: 800;
   transition: transform var(--transition), background var(--transition);
+}
+
+@media (min-width: 1025px) {
+  .list-item {
+    min-height: 172px;
+  }
+
+  .item-main {
+    display: flex;
+    align-items: stretch;
+  }
+
+  .item-copy {
+    width: 100%;
+    align-content: start;
+  }
 }
 
 .map-link:hover {
