@@ -580,7 +580,7 @@ function notifyFavoriteWinner() {
 
       <main class="main-shell">
         <section v-if="showHomeChrome && currentPage === 'home'" class="hero-intro surface-enter" aria-label="Introduzione">
-          <span class="hero-intro__eyebrow">Prezzi MIMIT · aggiornati ogni giorno</span>
+          <span class="hero-intro__eyebrow">Prezzi · aggiornati ogni giorno</span>
           <h1 class="hero-intro__title">Il pieno più conveniente,<br/>qui accanto a te.</h1>
           <p class="hero-intro__lede">
             Fuel Radar confronta i distributori intorno a te e ti suggerisce

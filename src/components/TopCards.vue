@@ -15,7 +15,6 @@ const emit = defineEmits(['select-station', 'toggle-favorite'])
 <template>
   <section class="top-cards">
     <div class="featured-intro">
-      <span class="featured-intro__eyebrow">Scelte rapide</span>
       <h2 class="featured-intro__title">I tre distributori da guardare per primi.</h2>
       <p class="featured-intro__text">
         Prezzo, distanza e compromesso migliore, gia ordinati per aiutarti a decidere in pochi secondi.
@@ -70,15 +69,9 @@ const emit = defineEmits(['select-station', 'toggle-favorite'])
 .featured-intro {
   display: grid;
   gap: 8px;
-  padding: 22px 22px 0;
-}
-
-.featured-intro__eyebrow {
-  color: rgba(255, 184, 141, 0.76);
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  min-height: 118px;
+  padding: 4px 22px 0;
+  align-content: start;
 }
 
 .featured-intro__title {
@@ -139,6 +132,7 @@ const emit = defineEmits(['select-station', 'toggle-favorite'])
   }
 
   .featured-intro {
+    min-height: 0;
     padding: 0;
   }
 

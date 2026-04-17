@@ -77,30 +77,6 @@ function estimateMinutes(distanceKm) {
     <ul class="list">
       <li v-for="station in visibleStations" :key="station.id" class="list-item-wrap">
         <article class="list-item" :class="{ 'list-item--active': selectedStationId === station.id }">
-          <div class="item-actions-top">
-            <button
-              class="action-chip"
-              type="button"
-              aria-label="Condividi stazione"
-              @click.stop="handleShare(station)"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/>
-                <polyline points="16 6 12 2 8 6"/>
-                <line x1="12" y1="2" x2="12" y2="15"/>
-              </svg>
-            </button>
-            <button
-              class="favorite-btn"
-              :class="{ 'favorite-btn--active': favoriteIds.includes(station.id) }"
-              type="button"
-              :aria-pressed="favoriteIds.includes(station.id)"
-              @click.stop="handleToggleFavorite(station)"
-            >
-              ★
-            </button>
-          </div>
-
           <button class="item-main" type="button" @click="handleSelect(station)">
             <div class="item-copy">
               <div class="item-top">
@@ -137,9 +113,32 @@ function estimateMinutes(distanceKm) {
             </div>
           </button>
 
-          <a class="map-link" :href="mapsUrl(station)" target="_blank" rel="noopener noreferrer">
-            Apri in Mappe
-          </a>
+          <div class="item-actions">
+            <a class="map-link" :href="mapsUrl(station)" target="_blank" rel="noopener noreferrer">
+              Apri in Mappe
+            </a>
+            <button
+              class="action-chip"
+              type="button"
+              aria-label="Condividi stazione"
+              @click.stop="handleShare(station)"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/>
+                <polyline points="16 6 12 2 8 6"/>
+                <line x1="12" y1="2" x2="12" y2="15"/>
+              </svg>
+            </button>
+            <button
+              class="favorite-btn"
+              :class="{ 'favorite-btn--active': favoriteIds.includes(station.id) }"
+              type="button"
+              :aria-pressed="favoriteIds.includes(station.id)"
+              @click.stop="handleToggleFavorite(station)"
+            >
+              ★
+            </button>
+          </div>
         </article>
       </li>
     </ul>
@@ -208,6 +207,10 @@ function estimateMinutes(distanceKm) {
   gap: 16px;
 }
 
+.list-item-wrap {
+  height: 100%;
+}
+
 .list-item {
   position: relative;
   overflow: hidden;
@@ -236,21 +239,11 @@ function estimateMinutes(distanceKm) {
   transition: background var(--transition), box-shadow var(--transition);
 }
 
-.item-actions-top {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
 .favorite-btn,
 .action-chip {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(14, 18, 25, 0.8);
   color: rgba(255, 219, 190, 0.72);
@@ -269,8 +262,8 @@ function estimateMinutes(distanceKm) {
 }
 
 .action-chip svg {
-  width: 13px;
-  height: 13px;
+  width: 15px;
+  height: 15px;
 }
 
 .favorite-btn:hover,
@@ -345,7 +338,7 @@ function estimateMinutes(distanceKm) {
 .item-copy {
   display: grid;
   gap: 10px;
-  padding-right: 34px;
+  align-content: start;
 }
 
 .item-top {
@@ -429,10 +422,18 @@ function estimateMinutes(distanceKm) {
   line-height: 1.55;
 }
 
+.item-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  align-self: flex-end;
+}
+
 .map-link {
-  min-width: 82px;
-  min-height: 44px;
-  padding: 0 14px;
+  min-width: 124px;
+  min-height: 42px;
+  padding: 0 12px;
   border-radius: 14px;
   display: inline-flex;
   align-items: center;
@@ -446,8 +447,13 @@ function estimateMinutes(distanceKm) {
 }
 
 @media (min-width: 1025px) {
+  .list {
+    grid-auto-rows: 1fr;
+  }
+
   .list-item {
-    min-height: 172px;
+    height: 100%;
+    min-height: 178px;
   }
 
   .item-main {
@@ -457,7 +463,7 @@ function estimateMinutes(distanceKm) {
 
   .item-copy {
     width: 100%;
-    align-content: start;
+    min-height: 100%;
   }
 }
 
@@ -509,11 +515,6 @@ function estimateMinutes(distanceKm) {
     gap: 14px;
   }
 
-  .favorite-btn {
-    top: 10px;
-    right: 10px;
-  }
-
   .item-main {
     width: 100%;
   }
@@ -552,7 +553,11 @@ function estimateMinutes(distanceKm) {
   }
 
   .map-link {
-    min-height: 42px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .item-actions {
     width: 100%;
   }
 }
