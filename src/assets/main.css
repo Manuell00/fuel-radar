@@ -5,31 +5,86 @@
 }
 
 :root {
+  /* Brand accent (unchanged: orange è la firma visiva di FuelRadar) */
   --primary: #ff7a1a;
   --primary-dark: #d95504;
   --primary-strong: #d95504;
   --primary-soft: rgba(255, 122, 26, 0.16);
   --primary-glow: rgba(255, 122, 26, 0.32);
-  --bg: #090b10;
+
+  /* Neutral scale — stile Uber: nero profondo + grigi asciutti, usati ovunque */
+  --neutral-50: #f7f8f9;
+  --neutral-100: #eceef0;
+  --neutral-300: #b8bcc2;
+  --neutral-500: #6b7280;
+  --neutral-700: #2a2f3a;
+  --neutral-800: #181c24;
+  --neutral-900: #10131a;
+  --neutral-950: #090b10;
+
+  /* Semantic surfaces (allineate al neutral scale) */
+  --bg: var(--neutral-950);
   --surface: #151922;
   --surface-soft: #191e28;
   --surface-strong: #10141c;
   --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  /* Testo — gerarchia Uber: 1 principale, 1 secondario, 1 terziario */
   --text: #fff6ef;
   --text-muted: rgba(255, 255, 255, 0.72);
   --text-soft: rgba(255, 255, 255, 0.5);
+  --text-faint: rgba(255, 255, 255, 0.38);
+
+  /* Semantic status — coerenti con il resto della UI */
   --success: #30d39d;
+  --success-soft: rgba(48, 211, 157, 0.14);
+  --danger: #ff6b6b;
+  --danger-soft: rgba(255, 107, 107, 0.14);
   --info: #62b6ff;
+  --info-soft: rgba(98, 182, 255, 0.14);
+  --warn: #ffb45a;
+
+  /* Scala radius */
   --radius-sm: 12px;
   --radius: 18px;
   --radius-lg: 24px;
   --radius-xl: 30px;
   --radius-full: 999px;
+
+  /* Scala ombre */
   --shadow-soft: 0 18px 34px rgba(0, 0, 0, 0.18);
   --shadow-lg: 0 26px 54px rgba(0, 0, 0, 0.26);
+
+  /* Scala tipografica (Uber-like: step chiari, usabili come token) */
+  --fs-xs: 0.72rem;
+  --fs-sm: 0.82rem;
+  --fs-base: 0.95rem;
+  --fs-md: 1.05rem;
+  --fs-lg: 1.3rem;
+  --fs-xl: 1.6rem;
+  --fs-2xl: 2.1rem;
+  --fs-display: clamp(2rem, 2.4vw + 0.6rem, 2.8rem);
+
+  /* Weights standard Uber: 400 body, 500 label, 700 strong, 800 display */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-strong: 700;
+  --fw-display: 800;
+
+  /* Tracking: stretto sui display, leggermente aperto sulle label uppercase */
+  --tracking-tight: -0.04em;
+  --tracking-display: -0.035em;
+  --tracking-label: 0.14em;
+
   --transition: 180ms ease;
-  --font-text: 'Uber Move Text', 'Uber Move', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-display: 'Uber Move', 'Uber Move Text', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-text: 'Inter', 'Uber Move Text', 'Uber Move', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Inter', 'Uber Move', 'Uber Move Text', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-feature-text: 'cv11', 'ss01', 'ss03';
+}
+
+html {
+  font-feature-settings: var(--font-feature-text);
 }
 
 html {
@@ -42,16 +97,38 @@ html {
 body {
   min-width: 320px;
   font-family: var(--font-text);
+  font-weight: var(--fw-regular);
   background: var(--bg);
   color: var(--text);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 h1, h2, h3, h4 {
   font-family: var(--font-display);
-  letter-spacing: -0.04em;
+  letter-spacing: var(--tracking-tight);
+  font-weight: var(--fw-display);
+}
+
+/* Selection color — accenti brand per coerenza */
+::selection {
+  background: var(--primary-soft);
+  color: #fff;
+}
+
+/* Focus ring coerente, non intrusivo (stile Uber: anello brand morbido) */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Impedisce font-boosting iOS in landscape (Safari/CarPlay) */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 button, input, select, textarea {

@@ -102,10 +102,10 @@ const props = defineProps({
 }
 
 .metric-label {
-  color: rgba(255, 255, 255, 0.48);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
 }
 

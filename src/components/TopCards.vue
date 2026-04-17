@@ -69,10 +69,10 @@ const emit = defineEmits(['select-station', 'toggle-favorite'])
   position: relative;
   display: inline-grid;
   gap: 10px;
-  color: #fff5ed;
-  font-size: 1rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
 }
 

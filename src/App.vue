@@ -573,6 +573,15 @@ function notifyFavoriteWinner() {
       </Transition>
 
       <main class="main-shell">
+        <section v-if="showHomeChrome && currentPage === 'home'" class="hero-intro surface-enter" aria-label="Introduzione">
+          <span class="hero-intro__eyebrow">Prezzi MIMIT · aggiornati ogni giorno</span>
+          <h1 class="hero-intro__title">Il pieno più conveniente,<br/>qui accanto a te.</h1>
+          <p class="hero-intro__lede">
+            Fuel Radar confronta i distributori intorno a te e ti suggerisce
+            dove risparmiare davvero — prezzo, distanza e trend in un colpo d'occhio.
+          </p>
+        </section>
+
         <section v-if="showHomeChrome" ref="locationSearchRef" class="hero-stack surface-enter">
           <LocationSearch
             :manual-location="manualLocation"
@@ -1538,10 +1547,10 @@ function notifyFavoriteWinner() {
 }
 
 .savings-label {
-  color: rgba(255, 255, 255, 0.52);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  color: var(--text-soft);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
 }
 
@@ -1696,10 +1705,10 @@ function notifyFavoriteWinner() {
 }
 
 .notification-label {
-  color: rgba(255, 232, 214, 0.86);
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
 }
 
@@ -1914,9 +1923,52 @@ function notifyFavoriteWinner() {
 }
 
 /* ── Layout desktop 2-colonne (map sticky + results) ── */
+/* Hero-intro: visibile solo su desktop larga, stile editoriale Uber-like */
+.hero-intro {
+  display: none;
+}
+
 @media (min-width: 1200px) {
   .main-shell {
     width: min(1340px, calc(100% - 48px));
+  }
+
+  .hero-intro {
+    display: grid;
+    gap: 10px;
+    max-width: 720px;
+    margin-bottom: 18px;
+    padding: 4px 0 2px;
+  }
+
+  .hero-intro__eyebrow {
+    color: var(--text-soft);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+  }
+
+  .hero-intro__title {
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 2.1vw + 0.6rem, 2.5rem);
+    line-height: 1.08;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .hero-intro__title br {
+    display: block;
+  }
+
+  .hero-intro__lede {
+    color: var(--text-muted);
+    font-size: 0.98rem;
+    line-height: 1.55;
+    max-width: 58ch;
+    font-weight: 400;
   }
 
   .dashboard {
@@ -1955,6 +2007,71 @@ function notifyFavoriteWinner() {
   /* Risultati più aggraziati nella colonna stretta */
   .results-wrap :deep(.list) {
     gap: 14px;
+  }
+}
+
+/* iPad landscape / laptop piccoli: 2-col ridotta, hero-intro compatta */
+@media (min-width: 900px) and (max-width: 1199px) {
+  .main-shell {
+    width: min(1024px, calc(100% - 32px));
+  }
+
+  .dashboard {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+  }
+
+  .map-wrap {
+    position: sticky;
+    top: 20px;
+    height: calc(100dvh - 40px);
+    max-height: 720px;
+    overflow: hidden;
+  }
+
+  .map-wrap :deep(.map-stage),
+  .map-wrap :deep(.map-stage--expanded) {
+    height: 100%;
+    min-height: 100%;
+    max-height: none;
+  }
+
+  .map-wrap :deep(.map-expand-btn) {
+    display: none;
+  }
+
+  .results-wrap :deep(.cards-grid) {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* CarPlay / landscape corto: header/hero ridotti, tipografia più densa */
+@media (orientation: landscape) and (max-height: 520px) {
+  .main-shell {
+    padding-top: 0;
+  }
+
+  .hero-intro {
+    display: none !important;
+  }
+
+  .page-content .app-header,
+  :deep(.app-header) {
+    padding: 6px 0 8px !important;
+  }
+
+  .hero-stack {
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .dashboard {
+    gap: 12px;
+  }
+
+  .update-label {
+    font-size: 0.7rem;
   }
 }
 
@@ -2136,10 +2253,10 @@ function notifyFavoriteWinner() {
   justify-content: center;
   gap: 8px;
   width: 100%;
-  color: rgba(255, 255, 255, 0.48);
-  font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
 }
 
