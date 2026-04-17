@@ -149,6 +149,14 @@ const estimatedLiters = computed(() => (
   savingsStation.value?.price ? savingsAmount.value / savingsStation.value.price : 0
 ))
 const estimatedSavings = computed(() => savingsPerLiter.value * estimatedLiters.value)
+const savingsHighlight = computed(() => {
+  if (!savingsStation.value || averagePrice.value == null || estimatedSavings.value <= 0) return null
+
+  return {
+    amount: savingsAmount.value,
+    saved: estimatedSavings.value.toFixed(2),
+  }
+})
 const savingsMessage = computed(() => {
   if (!savingsStation.value || averagePrice.value == null) {
     return 'Attiva la posizione o cerca un indirizzo per confrontare il distributore migliore con il prezzo medio vicino a te.'
@@ -787,54 +795,75 @@ function notifyFavoriteWinner() {
                 </Transition>
               </Teleport>
 
-              <div class="page-titlebar page-titlebar--mobile">
-                <div class="brand-row">
-                  <span class="brand-dot" aria-hidden="true"></span>
-                  <span class="brand-label">Fuel Radar</span>
-                </div>
-              </div>
+	              <div class="page-titlebar page-titlebar--mobile">
+	                <div class="brand-row">
+	                  <span class="brand-dot" aria-hidden="true"></span>
+	                  <span class="brand-label">Fuel Radar</span>
+	                </div>
+	              </div>
 
-              <button class="map-filter-trigger savings-filter-trigger" type="button" @click="openSavingsFilters">
-                <span class="map-filter-trigger__icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" focusable="false">
-                    <path d="M5 7h14v2H5zm2 5h10v2H7zm3 5h4v2h-4z" fill="currentColor" />
-                  </svg>
-                </span>
-                <span class="map-filter-trigger__copy">
-                  <span class="map-filter-trigger__pill">{{ savingsFuelSummary[filters.fuelType] }}</span>
-                  <span class="map-filter-trigger__pill">{{ savingsModeSummary[filters.mode] }}</span>
-                  <span class="map-filter-trigger__pill">{{ filters.radius }} km</span>
-                  <span class="map-filter-trigger__pill">€ {{ savingsAmount }}</span>
-                </span>
-              </button>
+	              <section class="savings-overview">
+	                <div class="savings-intro">
+	                  <h2 class="savings-intro__title">Quanto conviene fare rifornimento nella tua zona.</h2>
+	                  <p class="savings-intro__text">
+	                    Confrontiamo il distributore di riferimento con il prezzo medio vicino a te, usando i filtri attivi per carburante,
+	                    modalita, raggio e importo del pieno.
+	                  </p>
+	                </div>
 
-              <div class="savings-grid">
-                <article class="savings-card">
-                  <span class="savings-label">Stazione di riferimento</span>
-                  <strong class="savings-value savings-value--name savings-value--brand">
-                    {{ savingsStation?.brand?.toUpperCase() || 'IN ATTESA' }}
-                  </strong>
-                </article>
+	                <div class="savings-overview__panel">
+	                  <button class="map-filter-trigger savings-filter-trigger" type="button" @click="openSavingsFilters">
+	                    <span class="map-filter-trigger__icon" aria-hidden="true">
+	                      <svg viewBox="0 0 24 24" focusable="false">
+	                        <path d="M5 7h14v2H5zm2 5h10v2H7zm3 5h4v2h-4z" fill="currentColor" />
+	                      </svg>
+	                    </span>
+	                    <span class="map-filter-trigger__copy">
+	                      <span class="map-filter-trigger__pill">{{ savingsFuelSummary[filters.fuelType] }}</span>
+	                      <span class="map-filter-trigger__pill">{{ savingsModeSummary[filters.mode] }}</span>
+	                      <span class="map-filter-trigger__pill">{{ filters.radius }} km</span>
+	                      <span class="map-filter-trigger__pill">€ {{ savingsAmount }}</span>
+	                    </span>
+	                  </button>
 
-                <article class="savings-card">
-                  <span class="savings-label">Prezzo medio in zona</span>
-                  <strong class="savings-value">
-                    {{ averagePrice != null ? `€ ${averagePrice.toFixed(3)}` : '—' }}
-                  </strong>
-                </article>
+	                  <div class="savings-grid">
+	                    <article class="savings-card">
+	                      <span class="savings-label">Stazione di riferimento</span>
+	                      <strong class="savings-value savings-value--name savings-value--brand">
+	                        {{ savingsStation?.brand?.toUpperCase() || 'IN ATTESA' }}
+	                      </strong>
+	                    </article>
 
-                <article class="savings-card savings-card--accent">
-                  <span class="savings-label">Risparmio stimato</span>
-                  <strong class="savings-value">
-                    {{ estimatedSavings > 0 ? `€ ${estimatedSavings.toFixed(2)}` : '€ 0.00' }}
-                  </strong>
-                </article>
-              </div>
+	                    <article class="savings-card">
+	                      <span class="savings-label">Prezzo medio in zona</span>
+	                      <strong class="savings-value">
+	                        {{ averagePrice != null ? `€ ${averagePrice.toFixed(3)}` : '—' }}
+	                      </strong>
+	                    </article>
 
-              <section class="forecast-panel">
-                <div class="forecast-head">
-                  <span class="forecast-label">Previsioni</span>
-                </div>
+	                    <article class="savings-card savings-card--accent">
+	                      <span class="savings-label">Risparmio stimato</span>
+	                      <strong class="savings-value">
+	                        {{ estimatedSavings > 0 ? `€ ${estimatedSavings.toFixed(2)}` : '€ 0.00' }}
+	                      </strong>
+	                    </article>
+	                  </div>
+
+	                  <p v-if="savingsHighlight" class="savings-note savings-note--overview savings-note--highlight">
+	                    <span>Con</span>
+	                    <strong>€ {{ savingsHighlight.amount }}</strong>
+	                    <span>di rifornimento risparmi circa</span>
+	                    <strong>€ {{ savingsHighlight.saved }}</strong>
+	                    <span>rispetto alla media locale.</span>
+	                  </p>
+	                  <p v-else class="savings-note savings-note--overview">{{ savingsMessage }}</p>
+	                </div>
+	              </section>
+
+	              <section class="forecast-panel">
+	                <div class="forecast-head">
+	                  <span class="forecast-label">Previsioni</span>
+	                </div>
 
                 <div class="forecast-grid">
                   <article
@@ -1567,6 +1596,44 @@ function notifyFavoriteWinner() {
   margin-top: 0;
 }
 
+.savings-overview {
+  display: grid;
+  gap: 20px;
+}
+
+.savings-intro {
+  display: grid;
+  gap: 8px;
+}
+
+.savings-intro__title {
+  color: #fff7f0;
+  font-size: clamp(1.4rem, 2.3vw, 2rem);
+  line-height: 1.02;
+  letter-spacing: -0.05em;
+}
+
+.savings-intro__text {
+  max-width: 62ch;
+  color: rgba(255, 255, 255, 0.64);
+  line-height: 1.6;
+}
+
+.savings-overview__panel {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at top right, rgba(228, 164, 111, 0.12), transparent 22%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02)),
+    rgba(12, 15, 21, 0.8);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 24px 48px rgba(0, 0, 0, 0.18);
+}
+
 .savings-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1626,6 +1693,36 @@ function notifyFavoriteWinner() {
 .savings-note {
   color: rgba(255, 255, 255, 0.62);
   line-height: 1.55;
+}
+
+.savings-note--overview {
+  max-width: 70ch;
+}
+
+.savings-note--highlight {
+  max-width: 48ch;
+  margin: 6px auto 0;
+  padding: 18px 22px;
+  border-radius: 22px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: clamp(1.02rem, 1.6vw, 1.16rem);
+  line-height: 1.6;
+  background:
+    radial-gradient(circle at top center, rgba(228, 164, 111, 0.14), transparent 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02)),
+    rgba(16, 19, 26, 0.74);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 18px 36px rgba(0, 0, 0, 0.14);
+}
+
+.savings-note--highlight strong {
+  color: #fff8f1;
+  font-size: 1.16em;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 .forecast-panel {
@@ -2032,6 +2129,10 @@ function notifyFavoriteWinner() {
     align-items: start;
   }
 
+  .dashboard:not(.dashboard--single):has(.map-stage--expanded) {
+    align-items: stretch;
+  }
+
   /* Centra dashboard singolo (risparmi / preferiti) */
   .dashboard--single {
     grid-template-columns: 1fr;
@@ -2052,15 +2153,21 @@ function notifyFavoriteWinner() {
     overflow: hidden;
   }
 
-  .map-wrap :deep(.map-stage),
-  .map-wrap :deep(.map-stage--expanded) {
+  .map-wrap :deep(.map-stage) {
     height: 100%;
     min-height: 100%;
     max-height: none;
   }
 
-  .map-wrap :deep(.map-expand-btn) {
-    display: none;
+  .map-wrap:has(.map-stage--expanded) {
+    height: calc(100% - 24px);
+    max-height: none;
+  }
+
+  .map-wrap:has(.map-stage--expanded) :deep(.map-stage--expanded) {
+    height: 100%;
+    min-height: 100%;
+    max-height: none;
   }
 
   /* Nasconde heading interno di TopCards (rimpiazzato dal col-head) */
@@ -2104,6 +2211,10 @@ function notifyFavoriteWinner() {
     align-items: start;
   }
 
+  .dashboard:not(.dashboard--single):has(.map-stage--expanded) {
+    align-items: stretch;
+  }
+
   .dashboard--single {
     grid-template-columns: 1fr;
     max-width: 820px;
@@ -2123,15 +2234,21 @@ function notifyFavoriteWinner() {
     overflow: hidden;
   }
 
-  .map-wrap :deep(.map-stage),
-  .map-wrap :deep(.map-stage--expanded) {
+  .map-wrap :deep(.map-stage) {
     height: 100%;
     min-height: 100%;
     max-height: none;
   }
 
-  .map-wrap :deep(.map-expand-btn) {
-    display: none;
+  .map-wrap:has(.map-stage--expanded) {
+    height: calc(100% - 20px);
+    max-height: none;
+  }
+
+  .map-wrap:has(.map-stage--expanded) :deep(.map-stage--expanded) {
+    height: 100%;
+    min-height: 100%;
+    max-height: none;
   }
 
   .cards-col :deep(.section-head) {
@@ -2255,6 +2372,11 @@ function notifyFavoriteWinner() {
 
   .savings-grid {
     grid-template-columns: 1fr;
+  }
+
+  .savings-overview__panel {
+    padding: 18px;
+    border-radius: 24px;
   }
 
   .mobile-dock {
