@@ -12,7 +12,7 @@ const emit = defineEmits(['select-location', 'clear-manual', 'retry-geo', 'disab
 const query = ref('')
 const loading = ref(false)
 const error = ref('')
-const helperText = ref('Inizia a scrivere: ti proponiamo gli indirizzi in tempo reale.')
+const helperText = ref('Tocca "Mia posizione" per attivare il GPS oppure cerca un indirizzo.')
 const results = ref([])
 const highlightedIndex = ref(-1)
 const suppressSuggestions = ref(false)
@@ -268,7 +268,7 @@ watch(query, (nextValue) => {
   if (!nextValue.trim()) {
     results.value = []
     highlightedIndex.value = -1
-    helperText.value = 'Inizia a scrivere: ti proponiamo gli indirizzi in tempo reale.'
+    helperText.value = 'Tocca "Mia posizione" per attivare il GPS oppure cerca un indirizzo.'
     clearTimeout(debounceTimer)
     if (activeController) {
       activeController.abort()

@@ -335,7 +335,7 @@ onMounted(async () => {
     showSplash.value = false
   }, 1550)
 
-  await requestLocation()
+  await requestLocation({ userInitiated: false })
 })
 
 onUnmounted(() => {
@@ -404,7 +404,7 @@ function clearManualLocation() {
 async function useCurrentLocation() {
   geoDisabled.value = false
   clearManualLocation()
-  await requestLocation()
+  await requestLocation({ userInitiated: true })
 }
 
 function handleDisableGeo() {

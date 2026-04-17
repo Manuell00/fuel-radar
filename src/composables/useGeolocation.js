@@ -6,6 +6,26 @@ function getPosition(options) {
   })
 }
 
+function getBrowserContext() {
+  const userAgent = navigator.userAgent || ''
+  const knownInAppBrowsers = [
+    { pattern: /WhatsApp/i, label: 'WhatsApp' },
+    { pattern: /Instagram/i, label: 'Instagram' },
+    { pattern: /FBAN|FBAV|FB_IAB|Messenger/i, label: 'Facebook' },
+    { pattern: /Line/i, label: 'LINE' },
+    { pattern: /LinkedInApp/i, label: 'LinkedIn' },
+    { pattern: /Twitter/i, label: 'X' },
+  ]
+
+  const matched = knownInAppBrowsers.find(({ pattern }) => pattern.test(userAgent))
+
+  return {
+    appName: matched?.label ?? 'questo browser',
+    isInAppBrowser: Boolean(matched),
+    isSecureContext: window.isSecureContext || window.location.hostname === 'localhost',
+  }
+}
+
 async function getPermissionState() {
   if (!navigator.permissions?.query) return null
   try {
@@ -26,12 +46,19 @@ async function getApproximatePosition() {
   return { lat: data.latitude, lng: data.longitude }
 }
 
-function getGeolocationErrorMessage(permissionState) {
-  if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+function getGeolocationErrorMessage(permissionState, browserContext, userInitiated) {
+  if (!browserContext.isSecureContext) {
     return 'La posizione precisa richiede HTTPS. Inserisci un indirizzo manualmente.'
   }
   if (permissionState === 'denied') {
     return 'Permesso posizione negato. Riattivalo dal browser e tocca "Riprova posizione".'
+  }
+  if (browserContext.isInAppBrowser) {
+    if (userInitiated) {
+      return `Il browser interno di ${browserContext.appName} puo bloccare il GPS. Apri il link in Safari o Chrome e riprova.`
+    }
+
+    return `Il browser interno di ${browserContext.appName} non attiva sempre il GPS da solo. Tocca "Mia posizione" oppure apri il link in Safari o Chrome.`
   }
   return 'Posizione precisa non disponibile. Usa "Riprova posizione" oppure inserisci un indirizzo.'
 }
@@ -42,9 +69,12 @@ export function useGeolocation() {
   const error     = ref(null)
   const isFallback = ref(false)
 
-  async function requestLocation() {
+  async function requestLocation(options = {}) {
+    const { userInitiated = false } = options
     loading.value = true
     error.value   = null
+
+    const browserContext = getBrowserContext()
 
     if (!navigator.geolocation) {
       try {
@@ -62,6 +92,21 @@ export function useGeolocation() {
     }
 
     const permissionState = await getPermissionState()
+
+    if (!userInitiated && browserContext.isInAppBrowser) {
+      try {
+        position.value = await getApproximatePosition()
+        isFallback.value = true
+        error.value = `Posizione approssimata attiva. Per il GPS preciso da ${browserContext.appName}, tocca "Mia posizione" oppure apri il link in Safari o Chrome.`
+      } catch {
+        position.value = null
+        isFallback.value = false
+        error.value = getGeolocationErrorMessage(permissionState, browserContext, userInitiated)
+      } finally {
+        loading.value = false
+      }
+      return
+    }
 
     try {
       const pos = await getPosition({ enableHighAccuracy: true, timeout: 12000, maximumAge: 0 })
@@ -84,7 +129,7 @@ export function useGeolocation() {
         } catch {
           position.value  = null
           isFallback.value = false
-          error.value     = getGeolocationErrorMessage(permissionState)
+          error.value     = getGeolocationErrorMessage(permissionState, browserContext, userInitiated)
         } finally {
           loading.value = false
         }
