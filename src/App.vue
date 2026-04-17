@@ -33,6 +33,7 @@ const lastFavoriteWinnerNotice = ref('')
 
 const isDrivingMode = ref(false)
 const isNightMode = ref(false)
+const hasScrolled = ref(false)
 
 let splashFadeTimer = null
 let splashHideTimer = null
@@ -162,7 +163,7 @@ const goNowUrl = computed(() => {
   return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`
 })
 
-const showGoNowCta = computed(() => !!goNowUrl.value && currentPage.value === 'home' && !isDrivingMode.value)
+const showGoNowCta = computed(() => !!goNowUrl.value && currentPage.value === 'home' && !isDrivingMode.value && !hasScrolled.value)
 
 // Label "Ultimo aggiornamento"
 const lastUpdateLabel = computed(() => {
@@ -241,6 +242,10 @@ const notificationStatusLabel = computed(() => {
   return 'Ricevi avvisi quando un preferito scende di prezzo.'
 })
 
+function handleScroll() {
+  hasScrolled.value = window.scrollY > 40
+}
+
 function checkDrivingMode() {
   const isTouch = navigator.maxTouchPoints > 0 || 'ontouchstart' in window
   const isLandscape = window.innerWidth > window.innerHeight
@@ -306,6 +311,7 @@ onMounted(async () => {
   checkNightMode()
   nightModeTimer = window.setInterval(checkNightMode, 60_000)
 
+  window.addEventListener('scroll', handleScroll, { passive: true })
   window.addEventListener('resize', checkDrivingMode)
   window.addEventListener('orientationchange', checkDrivingMode)
 
@@ -325,6 +331,7 @@ onUnmounted(() => {
   if (splashHideTimer) window.clearTimeout(splashHideTimer)
   if (nightModeTimer) window.clearInterval(nightModeTimer)
   compactLayoutMedia?.removeEventListener('change', handleCompactLayoutChange)
+  window.removeEventListener('scroll', handleScroll)
   window.removeEventListener('resize', checkDrivingMode)
   window.removeEventListener('orientationchange', checkDrivingMode)
   clearNotificationRefreshTimer()
@@ -416,6 +423,7 @@ async function selectStation(station, options = {}) {
 function setCurrentPage(pageId) {
   currentPage.value = pageId
   selectedStation.value = null
+  hasScrolled.value = false
   window.scrollTo({
     top: 0,
     behavior: 'smooth',
@@ -424,6 +432,7 @@ function setCurrentPage(pageId) {
 
 async function scrollToMobileSection(sectionId) {
   currentPage.value = sectionId
+  hasScrolled.value = false
   await nextTick()
   window.scrollTo({
     top: 0,
@@ -628,7 +637,13 @@ function notifyFavoriteWinner() {
               </section>
 
               <section v-if="sorted.length" class="surface-enter surface-enter--delay-4">
-                <p v-if="lastUpdateLabel && !usingFallback" class="update-label">{{ lastUpdateLabel }}</p>
+                <p v-if="lastUpdateLabel && !usingFallback" class="update-label">
+                  <svg class="update-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9"/>
+                    <polyline points="12 7 12 12 15 14"/>
+                  </svg>
+                  {{ lastUpdateLabel }}
+                </p>
                 <StationList
                   :stations="sorted"
                   :selected-station-id="selectedStation?.id ?? null"
@@ -1898,6 +1913,51 @@ function notifyFavoriteWinner() {
   box-shadow: 0 12px 22px rgba(255, 122, 26, 0.2);
 }
 
+/* ── Layout desktop 2-colonne (map sticky + results) ── */
+@media (min-width: 1200px) {
+  .main-shell {
+    width: min(1340px, calc(100% - 48px));
+  }
+
+  .dashboard {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: 28px;
+    align-items: start;
+  }
+
+  .map-wrap {
+    position: sticky;
+    top: 24px;
+    height: calc(100dvh - 48px);
+    max-height: 860px;
+    overflow: hidden;
+  }
+
+  .map-wrap :deep(.map-stage),
+  .map-wrap :deep(.map-stage--expanded) {
+    height: 100%;
+    min-height: 100%;
+    max-height: none;
+  }
+
+  .map-wrap :deep(.map-expand-btn) {
+    display: none;
+  }
+
+  .results-wrap {
+    gap: 36px;
+  }
+
+  .results-wrap :deep(.cards-grid) {
+    grid-template-columns: 1fr;
+  }
+
+  /* Risultati più aggraziati nella colonna stretta */
+  .results-wrap :deep(.list) {
+    gap: 14px;
+  }
+}
+
 @media (max-width: 1024px) {
   .main-shell {
     width: min(100%, calc(100% - 20px));
@@ -2070,13 +2130,23 @@ function notifyFavoriteWinner() {
 
 /* ── Label ultimo aggiornamento ──────────────────── */
 .update-label {
-  margin-bottom: 14px;
-  text-align: center;
-  color: rgba(255, 255, 255, 0.42);
+  margin-bottom: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  color: rgba(255, 255, 255, 0.48);
   font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.update-icon {
+  width: 13px;
+  height: 13px;
+  opacity: 0.8;
 }
 
 /* ── Pulsante "Vai subito" ───────────────────────── */

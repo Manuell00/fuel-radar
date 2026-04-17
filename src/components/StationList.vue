@@ -449,10 +449,10 @@ function estimateMinutes(distanceKm) {
 
   .list {
     grid-auto-flow: column;
-    grid-auto-columns: minmax(280px, 84vw);
+    grid-auto-columns: minmax(240px, 74vw);
     overflow-x: auto;
     padding-bottom: 8px;
-    padding-inline: 2px 10px;
+    padding-inline: 2px 28px;
     scroll-snap-type: x proximity;
     scrollbar-width: none;
   }
