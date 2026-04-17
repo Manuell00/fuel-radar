@@ -1447,7 +1447,8 @@ function notifyFavoriteWinner() {
   grid-template-columns: 1.1fr 1.1fr 0.9fr 1.1fr;
   gap: 12px;
   overflow: auto;
-  align-items: start;
+  align-items: stretch;
+  grid-auto-rows: 1fr;
 }
 
 .filter-modal__apply {
@@ -1484,10 +1485,12 @@ function notifyFavoriteWinner() {
     0 18px 30px rgba(0, 0, 0, 0.12);
   display: grid;
   gap: 12px;
+  height: 100%;
+  align-content: start;
 }
 
 .map-filter-group--range {
-  align-content: center;
+  align-content: start;
 }
 
 .map-filter-label {

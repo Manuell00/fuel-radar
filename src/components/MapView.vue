@@ -601,10 +601,6 @@ onUnmounted(() => {
       <div class="map-orb map-orb--right" aria-hidden="true"></div>
       <div class="map-noise" aria-hidden="true"></div>
 
-      <div class="map-hud map-hud--top" aria-hidden="true">
-        <span class="hud-pill hud-pill--accent">Live Area</span>
-      </div>
-
       <button
         class="map-expand-btn"
         :class="{ 'map-expand-btn--active': mapExpanded }"
@@ -867,6 +863,8 @@ onUnmounted(() => {
   grid-template-columns: 1.1fr 1.1fr 0.9fr;
   gap: 12px;
   overflow: auto;
+  align-items: stretch;
+  grid-auto-rows: 1fr;
 }
 
 .filter-modal__apply {
@@ -891,8 +889,13 @@ onUnmounted(() => {
   opacity: 0;
 }
 
+.map-filter-group {
+  height: 100%;
+  align-content: start;
+}
+
 .map-filter-group--range {
-  align-content: center;
+  align-content: start;
 }
 
 .map-filter-label {
@@ -1173,49 +1176,6 @@ onUnmounted(() => {
   opacity: 0.3;
 }
 
-.map-hud {
-  position: absolute;
-  left: 18px;
-  right: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  z-index: 5;
-  pointer-events: none;
-}
-
-.map-hud--top {
-  top: 18px;
-  justify-content: flex-end;
-}
-
-.hud-pill {
-  display: inline-flex;
-  align-items: center;
-  min-height: 34px;
-  padding: 0 14px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 255, 255, 0.65);
-  color: #11151c;
-  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.12);
-}
-
-.hud-pill {
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.hud-pill--accent {
-  background: rgba(255, 141, 57, 0.88);
-  color: white;
-  border-color: rgba(255, 141, 57, 0.8);
-}
-
 .map-canvas {
   width: 100%;
   height: 500px;
@@ -1392,33 +1352,9 @@ onUnmounted(() => {
     align-items: center;
   }
 
-  .map-hud {
-    left: 12px;
-    right: 12px;
-  }
-
-  .map-hud--top {
-    top: 12px;
-  }
-
-  .map-hud--top {
-    display: none;
-  }
-
   .map-expand-btn {
     top: 12px;
     left: 12px;
-  }
-
-  .hud-pill {
-    min-height: 30px;
-    padding: 0 11px;
-    font-size: 0.7rem;
-  }
-
-  .map-hud--top {
-    flex-wrap: wrap;
-    justify-content: flex-end;
   }
 }
 
