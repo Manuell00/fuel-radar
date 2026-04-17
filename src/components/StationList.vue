@@ -454,6 +454,7 @@ function estimateMinutes(distanceKm) {
   .list-item {
     height: 100%;
     min-height: 178px;
+    align-items: center;
   }
 
   .item-main {
@@ -464,6 +465,14 @@ function estimateMinutes(distanceKm) {
   .item-copy {
     width: 100%;
     min-height: 100%;
+    align-content: center;
+    justify-content: center;
+  }
+
+  .item-top,
+  .item-heading,
+  .item-stats {
+    align-self: center;
   }
 }
 
