@@ -532,7 +532,7 @@ onUnmounted(() => {
             <div class="filter-modal__body">
               <div class="map-filter-group">
                 <span class="map-filter-label">Carburante</span>
-                <div class="map-filter-chips">
+                <div class="map-filter-chips map-filter-chips--equal">
                   <button
                     v-for="option in fuelOptions"
                     :key="option.value"
@@ -548,7 +548,7 @@ onUnmounted(() => {
 
               <div class="map-filter-group">
                 <span class="map-filter-label">Modalita</span>
-                <div class="map-filter-chips">
+                <div class="map-filter-chips map-filter-chips--equal">
                   <button
                     v-for="option in modeOptions"
                     :key="option.value"
@@ -567,16 +567,18 @@ onUnmounted(() => {
                   <span class="map-filter-label">Raggio</span>
                   <strong>{{ filters.radius }} km</strong>
                 </div>
-                <input
-                  class="map-slider"
-                  type="range"
-                  min="1"
-                  max="50"
-                  step="1"
-                  :value="filters.radius"
-                  :style="{ '--pct': sliderPct(filters.radius) }"
-                  @input="updateFilter('radius', Number($event.target.value))"
-                />
+                <div class="map-slider-vertical">
+                  <input
+                    class="map-slider"
+                    type="range"
+                    min="1"
+                    max="50"
+                    step="1"
+                    :value="filters.radius"
+                    :style="{ '--pct': sliderPct(filters.radius) }"
+                    @input="updateFilter('radius', Number($event.target.value))"
+                  />
+                </div>
               </div>
             </div>
 
@@ -912,6 +914,11 @@ onUnmounted(() => {
   gap: 8px;
 }
 
+.map-filter-chips--equal {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+}
+
 .map-chip {
   min-height: 38px;
   padding: 0 14px;
@@ -927,6 +934,11 @@ onUnmounted(() => {
     border-color var(--transition),
     background var(--transition),
     color var(--transition);
+}
+
+.map-filter-chips--equal .map-chip {
+  width: 100%;
+  justify-content: center;
 }
 
 .map-chip:hover {
@@ -948,6 +960,12 @@ onUnmounted(() => {
   gap: 10px;
   color: #fff4eb;
   font-weight: 700;
+}
+
+.map-slider-vertical {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .map-slider {
@@ -984,6 +1002,23 @@ onUnmounted(() => {
   border: 3px solid white;
   background: #cf7f49;
   box-shadow: 0 10px 18px rgba(207, 127, 73, 0.24);
+}
+
+@media (min-width: 1025px) {
+  .map-filter-group--range {
+    justify-items: center;
+  }
+
+  .map-slider-vertical {
+    min-height: 152px;
+    width: 44px;
+  }
+
+  .map-slider-vertical .map-slider {
+    width: 152px;
+    transform: rotate(-90deg);
+    transform-origin: center;
+  }
 }
 
 @keyframes map-copy-in {
