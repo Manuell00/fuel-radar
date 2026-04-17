@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
 const props = defineProps({
   manualLocation: { type: Object, default: null },
@@ -15,17 +15,127 @@ const helperText = ref('Inizia a scrivere: ti proponiamo gli indirizzi in tempo 
 const results = ref([])
 const highlightedIndex = ref(-1)
 const suppressSuggestions = ref(false)
+const isMobileLayout = ref(false)
+const plannerOpen = ref(false)
+const plannerInputRef = ref(null)
+const plannerContentRef = ref(null)
+const plannerTranslateY = ref(0)
+const plannerDragging = ref(false)
 
 let debounceTimer = null
 let activeController = null
 let reverseController = null
+let mobileMediaQuery = null
+let dragStartY = 0
+let dragLastY = 0
+let dragAllowPull = false
 
 const hasResults = computed(() => results.value.length > 0)
 const showDropdown = computed(() => !suppressSuggestions.value && (hasResults.value || loading.value))
+const showInlineDropdown = computed(() => showDropdown.value && !isMobileLayout.value)
+const showPlannerDropdown = computed(() => showDropdown.value && isMobileLayout.value && plannerOpen.value)
 const showSuccessNotice = computed(() =>
   helperText.value === 'Posizione attuale rilevata e applicata alla mappa.' ||
   helperText.value === 'Posizione attuale rilevata. Indirizzo preciso non disponibile.'
 )
+const locationStatus = computed(() => {
+  if (showSuccessNotice.value) {
+    return {
+      icon: '✓',
+      label: 'Posizione rilevata',
+      title: helperText.value,
+      className: 'search-status search-status--success',
+    }
+  }
+
+  if (!props.currentPosition && !props.manualLocation) {
+    return {
+      icon: '✕',
+      label: 'Posizione non disponibile',
+      title: 'Posizione attuale non rilevata.',
+      className: 'search-status search-status--error',
+    }
+  }
+
+  return null
+})
+const visibleHelperText = computed(() => (showSuccessNotice.value ? '' : helperText.value))
+const plannerTitle = computed(() => (props.manualLocation ? 'Modifica la ricerca' : 'Pianifica la ricerca'))
+function handleMobileLayoutChange(event) {
+  isMobileLayout.value = event.matches
+
+  if (!event.matches) {
+    plannerOpen.value = false
+  }
+}
+
+async function openPlanner() {
+  if (!isMobileLayout.value) return
+
+  plannerTranslateY.value = 0
+  plannerDragging.value = false
+  plannerOpen.value = true
+  await nextTick()
+  plannerInputRef.value?.focus()
+}
+
+function closePlanner() {
+  plannerTranslateY.value = 0
+  plannerDragging.value = false
+  plannerOpen.value = false
+}
+
+function onPlannerTouchStart(event) {
+  if (!isMobileLayout.value || !plannerOpen.value) return
+
+  const touch = event.touches[0]
+  if (!touch) return
+
+  dragStartY = touch.clientY
+  dragLastY = touch.clientY
+  plannerDragging.value = false
+  dragAllowPull = (plannerContentRef.value?.scrollTop ?? 0) <= 0
+}
+
+function onPlannerTouchMove(event) {
+  if (!isMobileLayout.value || !plannerOpen.value) return
+
+  const touch = event.touches[0]
+  if (!touch) return
+
+  const deltaY = touch.clientY - dragStartY
+  dragLastY = touch.clientY
+
+  if (!dragAllowPull) {
+    dragAllowPull = deltaY > 0 && (plannerContentRef.value?.scrollTop ?? 0) <= 0
+  }
+
+  if (!dragAllowPull || deltaY <= 0) {
+    plannerTranslateY.value = 0
+    return
+  }
+
+  plannerDragging.value = true
+  plannerTranslateY.value = Math.min(deltaY, 240)
+  event.preventDefault()
+}
+
+function onPlannerTouchEnd() {
+  if (!isMobileLayout.value || !plannerOpen.value) return
+
+  const travelled = dragLastY - dragStartY
+  const shouldClose = travelled > 110
+
+  dragAllowPull = false
+
+  if (shouldClose) {
+    closePlanner()
+    return
+  }
+
+  plannerDragging.value = false
+  plannerTranslateY.value = 0
+}
 
 function normalizeResult(item) {
   const primaryParts = []
@@ -142,11 +252,10 @@ async function reverseGeocodePosition(position) {
     }
 
     const data = await response.json()
-    const label = data.display_name || 'Posizione corrente'
     suppressSuggestions.value = true
     results.value = []
     highlightedIndex.value = -1
-    query.value = label
+    query.value = ''
     helperText.value = 'Posizione attuale rilevata e applicata alla mappa.'
   } catch (err) {
     if (err.name === 'AbortError') {
@@ -156,7 +265,7 @@ async function reverseGeocodePosition(position) {
     suppressSuggestions.value = true
     results.value = []
     highlightedIndex.value = -1
-    query.value = `${position.lat.toFixed(5)}, ${position.lng.toFixed(5)}`
+    query.value = ''
     helperText.value = 'Posizione attuale rilevata. Indirizzo preciso non disponibile.'
   }
 }
@@ -241,6 +350,10 @@ function selectResult(result) {
   error.value = ''
   helperText.value = 'Posizione manuale selezionata.'
   emit('select-location', result)
+
+  if (isMobileLayout.value) {
+    closePlanner()
+  }
 }
 
 function onKeydown(event) {
@@ -289,6 +402,33 @@ function clearManualLocation() {
   emit('clear-manual')
 }
 
+function handleInlineFocus(event) {
+  if (!isMobileLayout.value) return
+
+  event.target.blur()
+  void openPlanner()
+}
+
+function handleInlineClick() {
+  if (!isMobileLayout.value) return
+
+  void openPlanner()
+}
+
+watch(plannerOpen, (isOpen) => {
+  document.body.style.overflow = isOpen ? 'hidden' : ''
+  if (!isOpen) {
+    plannerTranslateY.value = 0
+    plannerDragging.value = false
+  }
+})
+
+onMounted(() => {
+  mobileMediaQuery = window.matchMedia('(max-width: 1024px)')
+  isMobileLayout.value = mobileMediaQuery.matches
+  mobileMediaQuery.addEventListener('change', handleMobileLayoutChange)
+})
+
 onUnmounted(() => {
   clearTimeout(debounceTimer)
   if (activeController) {
@@ -297,32 +437,52 @@ onUnmounted(() => {
   if (reverseController) {
     reverseController.abort()
   }
+  mobileMediaQuery?.removeEventListener('change', handleMobileLayoutChange)
+  document.body.style.overflow = ''
 })
 </script>
 
 <template>
   <section class="location-search">
     <div class="search-shell">
-      <div class="search-copy">
-        <h2 class="search-title">Ricerca Posizione</h2>
-        <p class="search-subtitle">
-          Scegli un indirizzo oppure usa direttamente la tua posizione attuale.
-        </p>
-      </div>
+      <button
+        v-if="locationStatus && !isMobileLayout"
+        class="search-status-btn"
+        :class="locationStatus.className"
+        type="button"
+        :aria-label="locationStatus.label"
+      >
+        <span aria-hidden="true">{{ locationStatus.icon }}</span>
+        <span class="search-status-tooltip" role="tooltip">{{ locationStatus.title }}</span>
+      </button>
 
       <div class="search-form">
-        <div class="search-row">
+        <div class="search-top-row">
           <div class="search-input-wrap">
-            <input
-              v-model="query"
-              class="search-input"
-              type="text"
-              autocomplete="street-address"
-              placeholder="Es. Via Roma 12, Rapallo"
-              @keydown="onKeydown"
-            />
+            <div class="search-input-shell">
+              <span class="search-input-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path
+                    d="M10.5 4a6.5 6.5 0 1 0 4.03 11.6l4.44 4.44 1.06-1.06-4.44-4.44A6.5 6.5 0 0 0 10.5 4Zm0 1.5a5 5 0 1 1 0 10 5 5 0 0 1 0-10Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </span>
+              <input
+                id="address-search"
+                v-model="query"
+                class="search-input"
+                type="text"
+                autocomplete="street-address"
+                :placeholder="isMobileLayout ? 'Indirizzo o zona' : 'Cerca per indirizzo'"
+                :readonly="isMobileLayout"
+                @focus="handleInlineFocus"
+                @click="handleInlineClick"
+                @keydown="onKeydown"
+              />
+            </div>
 
-            <div v-if="showDropdown" class="results-panel">
+            <div v-if="showInlineDropdown" class="results-panel">
               <div v-if="loading" class="results-state">
                 <span class="mini-spinner" aria-hidden="true"></span>
                 Cerco suggerimenti...
@@ -349,37 +509,137 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <button class="search-btn" type="button" :disabled="loading" @click="searchAddress">
-            {{ loading ? 'Cerco...' : 'Cerca indirizzo' }}
+          <button class="geo-inline-btn" type="button" aria-label="Usa la mia posizione attuale" @click="emit('retry-geo')">
+            <span class="geo-inline-btn__icon" aria-hidden="true">◎</span>
+            <span class="geo-inline-btn__label">Mia posizione</span>
           </button>
         </div>
 
-        <div class="search-actions">
-          <button class="ghost-btn" type="button" @click="emit('retry-geo')">
-            Usa la mia posizione
-          </button>
-          <button
-            v-if="manualLocation"
-            class="ghost-btn ghost-btn--active"
-            type="button"
-            @click="clearManualLocation"
-          >
-            Torna alla posizione attuale
-          </button>
+        <div class="search-toolbar">
+          <div class="search-actions">
+            <button
+              v-if="manualLocation"
+              class="ghost-btn ghost-btn--active ghost-btn--full"
+              type="button"
+              @click="clearManualLocation"
+            >
+              Torna alla posizione attuale
+            </button>
+          </div>
         </div>
       </div>
 
-      <div v-if="showSuccessNotice" class="search-notice search-notice--success" role="status" aria-live="polite">
-        <span class="notice-icon" aria-hidden="true">✓</span>
-        <span>{{ helperText }}</span>
+      <div v-if="visibleHelperText || manualLocation" class="search-meta">
+        <p v-if="visibleHelperText" class="search-helper">{{ visibleHelperText }}</p>
+        <p v-if="manualLocation" class="active-location">
+          Posizione manuale attiva: <strong>{{ manualLocation.label }}</strong>
+        </p>
       </div>
-      <p v-else class="search-helper">{{ helperText }}</p>
-      <p v-if="manualLocation" class="active-location">
-        Posizione manuale attiva: <strong>{{ manualLocation.label }}</strong>
-      </p>
       <p v-if="error" class="search-error">{{ error }}</p>
     </div>
+
   </section>
+
+  <Teleport to="body">
+    <Transition name="planner-fade">
+      <div
+        v-if="plannerOpen"
+        class="planner-overlay"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="plannerTitle"
+        @click.self="closePlanner"
+      >
+        <div
+          class="planner-sheet"
+          :class="{ 'planner-sheet--dragging': plannerDragging }"
+          :style="{ transform: `translateY(${plannerTranslateY}px)` }"
+          @touchstart.passive="onPlannerTouchStart"
+          @touchmove="onPlannerTouchMove"
+          @touchend="onPlannerTouchEnd"
+          @touchcancel="onPlannerTouchEnd"
+        >
+          <div class="planner-handle" aria-hidden="true"></div>
+
+          <div class="planner-header">
+            <button class="planner-back" type="button" aria-label="Torna alla home" @click="closePlanner">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="m14.78 5.22 1.06 1.06L10.12 12l5.72 5.72-1.06 1.06L8 12z" fill="currentColor" />
+              </svg>
+              <span>Home</span>
+            </button>
+
+            <button class="planner-close" type="button" aria-label="Chiudi ricerca" @click="closePlanner">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M6.28 5.22 12 10.94l5.72-5.72 1.06 1.06L13.06 12l5.72 5.72-1.06 1.06L12 13.06l-5.72 5.72-1.06-1.06L10.94 12 5.22 6.28Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="planner-content">
+            <div ref="plannerContentRef" class="planner-content-scroll">
+              <div class="planner-copy">
+              <h2 class="planner-title">{{ plannerTitle }}</h2>
+              <p class="planner-subtitle">Inserisci la zona di interesse e scegli il punto da cui partire.</p>
+              </div>
+
+              <div class="planner-field">
+                <div class="planner-input-shell">
+                  <span class="planner-input-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <path
+                        d="M10.5 4a6.5 6.5 0 1 0 4.03 11.6l4.44 4.44 1.06-1.06-4.44-4.44A6.5 6.5 0 0 0 10.5 4Zm0 1.5a5 5 0 1 1 0 10 5 5 0 0 1 0-10Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </span>
+                  <input
+                    ref="plannerInputRef"
+                    v-model="query"
+                    class="planner-input"
+                    type="text"
+                    autocomplete="street-address"
+                    placeholder="Comune, via o CAP"
+                    @keydown="onKeydown"
+                  />
+                </div>
+              </div>
+
+              <button class="planner-search-btn" type="button" :disabled="loading" @click="searchAddress">
+                {{ loading ? 'Cerco...' : 'Cerca questa zona' }}
+              </button>
+
+              <div v-if="showPlannerDropdown" class="planner-results">
+                <div v-if="loading" class="planner-results-state">
+                  <span class="mini-spinner" aria-hidden="true"></span>
+                  Cerco suggerimenti...
+                </div>
+
+                <ul v-else-if="results.length" class="planner-results-list">
+                  <li v-for="(result, index) in results" :key="`planner-${result.lat}-${result.lng}-${result.label}`">
+                    <button
+                      class="planner-result-item"
+                      :class="{ 'planner-result-item--active': highlightedIndex === index }"
+                      type="button"
+                      @mouseenter="highlightedIndex = index"
+                      @click="selectResult(result)"
+                    >
+                      <span class="planner-result-title">{{ result.title }}</span>
+                      <span class="planner-result-label">{{ result.subtitle }}</span>
+                    </button>
+                  </li>
+                </ul>
+
+                <div v-else class="planner-results-state">
+                  Nessun suggerimento disponibile.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -414,55 +674,131 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-.search-copy {
-  text-align: center;
-  display: grid;
-  gap: 0.65rem;
+.search-status-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 900;
+  cursor: help;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 12px 22px rgba(0, 0, 0, 0.12);
 }
 
-.search-title {
-  font-size: clamp(2rem, 5vw, 3rem);
-  font-weight: 800;
-  color: #fff8f1;
-  letter-spacing: -0.04em;
-  text-transform: uppercase;
-  -webkit-text-stroke: 0.9px rgba(255, 166, 99, 0.3);
-  text-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.24),
-    0 0 22px rgba(255, 122, 26, 0.1),
-    0 0 2px rgba(255, 214, 181, 0.2);
+.search-status-tooltip {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: max-content;
+  max-width: 220px;
+  padding: 0.65rem 0.8rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 160, 92, 0.22);
+  background: rgba(10, 12, 18, 0.96);
+  color: #fff3e8;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.45;
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.22);
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease;
 }
 
-.search-subtitle {
-  color: rgba(255,255,255,0.7);
-  line-height: 1.7;
+.search-status-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  right: 12px;
+  width: 10px;
+  height: 10px;
+  background: rgba(10, 12, 18, 0.96);
+  border-top: 1px solid rgba(255, 160, 92, 0.22);
+  border-left: 1px solid rgba(255, 160, 92, 0.22);
+  transform: rotate(45deg);
+}
+
+.search-status-btn:hover .search-status-tooltip,
+.search-status-btn:focus-visible .search-status-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.search-status {
+  color: white;
+}
+
+.search-status--success {
+  background: rgba(255, 122, 26, 0.18);
+  border-color: rgba(255, 160, 92, 0.28);
+}
+
+.search-status--error {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 235, 223, 0.88);
 }
 
 .search-form {
-  margin-top: 0.9rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-}
-
-.search-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.7rem;
-  align-items: start;
+  gap: 0.82rem;
 }
 
 .search-input-wrap {
   position: relative;
+  min-width: 0;
+  flex: 1;
+}
+
+.search-top-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.65rem;
+}
+
+.search-input-shell {
+  position: relative;
+}
+
+.search-input-icon {
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: rgba(255, 255, 255, 0.48);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.search-input-icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 .search-input {
   width: 100%;
-  min-height: 50px;
-  padding: 0.95rem 1rem;
-  border-radius: 16px;
+  min-height: 58px;
+  padding: 0.95rem 1rem 0.95rem 2.9rem;
+  border-radius: 22px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.07);
   color: #ffffff;
   outline: none;
   transition:
@@ -483,46 +819,66 @@ onUnmounted(() => {
   transform: translateY(-1px);
 }
 
-.search-btn,
+.search-input[readonly] {
+  cursor: pointer;
+}
+
 .ghost-btn,
 .result-item {
   font: inherit;
 }
 
-.search-btn {
-  min-height: 50px;
-  padding: 0.9rem 1.1rem;
-  border: 0;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #ff9c52, #ff7a1a 55%, #d95504);
-  color: white;
+.search-toolbar {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.geo-inline-btn {
+  min-width: 126px;
+  min-height: 58px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  background: rgba(255,255,255,0.07);
+  color: rgba(255,255,255,0.88);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0 0.9rem;
+  font: inherit;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 16px 28px rgba(255, 122, 26, 0.24);
-  transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
 }
 
-.search-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 20px 34px rgba(255, 122, 26, 0.3);
-  filter: saturate(1.06);
+.geo-inline-btn__icon {
+  font-size: 0.95rem;
 }
 
-.search-btn:disabled {
-  cursor: wait;
-  opacity: 0.88;
+.geo-inline-btn__label {
+  white-space: nowrap;
+}
+
+.geo-inline-btn:hover {
+  border-color: rgba(255, 122, 26, 0.25);
+  color: #ffffff;
+  background: rgba(255,255,255,0.1);
 }
 
 .search-actions {
   display: flex;
-  justify-content: flex-start;
-  gap: 0.6rem;
   flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: stretch;
+  justify-content: flex-start;
 }
 
 .ghost-btn {
   min-height: 40px;
-  padding: 0.65rem 0.9rem;
+  width: auto;
+  min-width: 182px;
+  padding: 0.72rem 0.9rem;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255,255,255,0.05);
@@ -538,65 +894,50 @@ onUnmounted(() => {
   background: rgba(255, 122, 26, 0.16);
 }
 
+.ghost-btn--full {
+  grid-column: 1 / -1;
+}
+
 .ghost-btn:hover {
   border-color: rgba(255, 122, 26, 0.25);
   color: #ffffff;
 }
 
+.search-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.78rem;
+}
+
 .search-helper,
 .active-location,
 .search-error {
-  margin-top: 0.8rem;
   font-size: 0.84rem;
 }
 
 .search-helper {
-  color: rgba(255,255,255,0.64);
-}
-
-.search-notice {
-  margin-top: 0.95rem;
-  min-height: 46px;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.7rem;
-  width: fit-content;
-  max-width: 100%;
-  padding: 0.78rem 1rem;
+  min-height: 34px;
+  padding: 0 0.8rem;
   border-radius: 999px;
-  font-size: 0.84rem;
-  font-weight: 700;
-}
-
-.search-notice--success {
-  background: rgba(255, 122, 26, 0.16);
-  border: 1px solid rgba(255, 167, 100, 0.28);
-  color: #fff2e8;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.04),
-    0 12px 24px rgba(255, 122, 26, 0.14);
-}
-
-.notice-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #ff9c52, #ff7a1a 55%, #d95504);
-  color: white;
-  font-size: 0.8rem;
-  font-weight: 900;
-  box-shadow: 0 8px 16px rgba(255, 122, 26, 0.22);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255,255,255,0.68);
 }
 
 .active-location {
-  color: rgba(255,255,255,0.72);
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 0.8rem;
+  border-radius: 999px;
+  background: rgba(255, 122, 26, 0.12);
+  color: rgba(255,255,255,0.78);
 }
 
 .search-error {
+  margin-top: 0.7rem;
   color: #b45309;
   font-weight: 600;
 }
@@ -612,6 +953,251 @@ onUnmounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(10, 12, 18, 0.98);
   box-shadow: 0 24px 44px rgba(0, 0, 0, 0.28);
+}
+
+.planner-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: grid;
+  align-items: end;
+  padding-top: max(16px, env(safe-area-inset-top));
+  background: rgba(6, 8, 12, 0.56);
+  backdrop-filter: blur(10px);
+  isolation: isolate;
+}
+
+.planner-sheet {
+  width: 100%;
+  height: min(82dvh, 760px);
+  max-height: calc(100dvh - max(16px, env(safe-area-inset-top)));
+  padding: 0.9rem 1rem calc(1.2rem + env(safe-area-inset-bottom));
+  border-radius: 28px 28px 0 0;
+  background:
+    radial-gradient(circle at top right, rgba(255, 160, 92, 0.16), transparent 24%),
+    linear-gradient(180deg, #efe7db 0%, #e9dfd1 100%);
+  color: #1a1611;
+  box-shadow: 0 -24px 54px rgba(0, 0, 0, 0.2);
+  display: grid;
+  align-content: start;
+  gap: 0.9rem;
+  overflow: hidden;
+  transition: transform 220ms ease;
+  touch-action: none;
+}
+
+.planner-sheet--dragging {
+  transition: none;
+}
+
+.planner-handle {
+  width: 42px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(20, 20, 20, 0.12);
+  justify-self: center;
+}
+
+.planner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.planner-back {
+  min-height: 42px;
+  padding: 0 0.85rem 0 0.7rem;
+  border: 0;
+  border-radius: 999px;
+  background: #ebe5dd;
+  color: #1b1b1b;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  font: inherit;
+  font-weight: 700;
+}
+
+.planner-back svg {
+  width: 18px;
+  height: 18px;
+}
+
+.planner-content {
+  display: grid;
+  grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  align-content: start;
+  gap: 0.95rem;
+  min-height: 0;
+  padding-bottom: 0.2rem;
+}
+
+.planner-content-scroll {
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  gap: 0.95rem;
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: 0.2rem;
+}
+
+.planner-copy {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.planner-title {
+  font-size: 1.85rem;
+  line-height: 1;
+  letter-spacing: -0.06em;
+  color: #121212;
+}
+
+.planner-subtitle {
+  margin-top: 0.45rem;
+  color: #5d5d5d;
+  font-size: 0.96rem;
+  line-height: 1.5;
+}
+
+.planner-close {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.42);
+  color: #1b1b1b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 1px rgba(104, 76, 48, 0.08);
+}
+
+.planner-close svg,
+.planner-input-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.planner-field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.planner-input-shell {
+  position: relative;
+}
+
+.planner-input-icon {
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  color: #6a6a6a;
+  transform: translateY(-50%);
+}
+
+.planner-input {
+  width: 100%;
+  min-height: 58px;
+  padding: 0.95rem 1rem 0.95rem 2.9rem;
+  border-radius: 20px;
+  border: 1px solid rgba(120, 90, 58, 0.16);
+  background: rgba(255, 252, 247, 0.88);
+  color: #151515;
+  outline: none;
+  box-shadow: 0 12px 28px rgba(30, 24, 18, 0.06);
+}
+
+.planner-input::placeholder {
+  color: #949494;
+}
+
+.planner-search-btn,
+.planner-geo-btn {
+  min-height: 52px;
+  border: 0;
+  border-radius: 18px;
+  font: inherit;
+  font-weight: 700;
+}
+
+.planner-search-btn {
+  background: linear-gradient(135deg, #2f2720, #171310);
+  color: #f5f1eb;
+}
+
+.planner-results {
+  display: grid;
+  gap: 0.45rem;
+  min-height: 0;
+  overflow: auto;
+  padding-top: 0.2rem;
+  padding-right: 0.1rem;
+}
+
+.planner-results-list {
+  list-style: none;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.planner-result-item {
+  width: 100%;
+  padding: 0.9rem 0.95rem;
+  border: 1px solid rgba(129, 99, 67, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 252, 247, 0.86);
+  text-align: left;
+}
+
+.planner-result-item--active {
+  border-color: rgba(203, 132, 66, 0.28);
+  background: rgba(255, 243, 230, 0.92);
+}
+
+.planner-result-title {
+  display: block;
+  color: #161616;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.planner-result-label {
+  display: block;
+  margin-top: 0.18rem;
+  color: #676767;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.planner-results-state {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: #666;
+  font-size: 0.9rem;
+  padding: 0.6rem 0.1rem;
+}
+
+.planner-fade-enter-active,
+.planner-fade-leave-active {
+  transition: opacity 180ms ease;
+}
+
+.planner-fade-enter-active .planner-sheet,
+.planner-fade-leave-active .planner-sheet {
+  transition: transform 220ms ease;
+}
+
+.planner-fade-enter-from,
+.planner-fade-leave-to {
+  opacity: 0;
+}
+
+.planner-fade-enter-from .planner-sheet,
+.planner-fade-leave-to .planner-sheet {
+  transform: translateY(24px);
 }
 
 .results-list {
@@ -683,57 +1269,51 @@ onUnmounted(() => {
   42% { transform: translateX(120%); opacity: 0; }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   .location-search {
     padding-left: 0.75rem;
     padding-right: 0.75rem;
   }
 
   .search-shell {
-    padding: 0.9rem;
-    border-radius: 24px;
-  }
-
-  .search-row {
-    grid-template-columns: 1fr;
-  }
-
-  .search-copy {
-    text-align: center;
-  }
-
-  .search-title {
-    max-width: none;
-    font-size: clamp(1.8rem, 9vw, 2.35rem);
-  }
-
-  .search-subtitle {
-    font-size: 0.92rem;
-    line-height: 1.55;
-  }
-
-  .search-btn {
-    width: 100%;
+    padding: 0.2rem 0;
+    border-radius: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
   }
 
   .search-actions {
-    display: grid;
-    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .search-top-row {
+    gap: 0.55rem;
+  }
+
+  .geo-inline-btn {
+    min-width: 108px;
+    padding: 0 0.65rem;
+    gap: 0.35rem;
+    font-size: 0.82rem;
   }
 
   .ghost-btn {
     width: 100%;
     justify-content: center;
-  }
-
-  .search-notice {
-    width: 100%;
-    justify-content: flex-start;
-    border-radius: 18px;
+    font-size: 0.92rem;
   }
 
   .results-panel {
     border-radius: 18px;
+  }
+
+  .planner-sheet {
+    height: min(84dvh, 860px);
+    max-height: calc(100dvh - max(12px, env(safe-area-inset-top)));
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 }
 </style>

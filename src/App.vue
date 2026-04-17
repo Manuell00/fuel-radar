@@ -21,10 +21,20 @@ const splashLeaving = ref(false)
 const favoriteIds = ref([])
 const currentPage = ref('home')
 const favoriteStorageKey = 'fuel-radar-favorites'
+const notificationStorageKey = 'fuel-radar-notifications'
 const savingsAmount = ref(20)
+const savingsFiltersOpen = ref(false)
+const isCompactLayout = ref(false)
+const notificationsEnabled = ref(false)
+const notificationPermission = ref('default')
+const hasNotificationBaseline = ref(false)
+const favoritePriceSnapshot = ref({})
+const lastFavoriteWinnerNotice = ref('')
 
 let splashFadeTimer = null
 let splashHideTimer = null
+let compactLayoutMedia = null
+let notificationRefreshTimer = null
 
 const {
   position,
@@ -85,12 +95,36 @@ const bannerMessage = computed(() => {
 
 const showBanner = computed(() => bannerMessage.value && dismissedBanner.value !== bannerMessage.value)
 const favoriteStations = computed(() => sorted.value.filter((station) => favoriteIds.value.includes(station.id)))
+const notificationsSupported = computed(() => typeof window !== 'undefined' && 'Notification' in window)
 const pages = computed(() => ([
   { id: 'home', label: 'Home' },
   { id: 'risparmi', label: 'Risparmi' },
   { id: 'preferiti', label: 'Preferiti' },
 ]))
+const showHomeChrome = computed(() => !isCompactLayout.value || currentPage.value === 'home')
 const savingsAmountOptions = [5, 10, 20, 50, 100]
+const savingsFuelOptions = [
+  { value: 'tutti', label: 'Tutti' },
+  { value: 'benzina', label: 'Benzina' },
+  { value: 'diesel', label: 'Diesel' },
+  { value: 'gpl', label: 'GPL' },
+]
+const savingsModeOptions = [
+  { value: 'tutti', label: 'Tutti' },
+  { value: 'self', label: 'Self' },
+  { value: 'servito', label: 'Servito' },
+]
+const savingsFuelSummary = {
+  tutti: 'Tutti i carburanti',
+  benzina: 'Benzina',
+  diesel: 'Diesel',
+  gpl: 'GPL',
+}
+const savingsModeSummary = {
+  tutti: 'Tutte le modalita',
+  self: 'Self',
+  servito: 'Servito',
+}
 const averagePrice = computed(() => {
   if (!filtered.value.length) return null
   return filtered.value.reduce((total, station) => total + station.price, 0) / filtered.value.length
@@ -115,6 +149,84 @@ const savingsMessage = computed(() => {
 
   return `Con ${savingsAmount.value} euro di rifornimento risparmi circa € ${estimatedSavings.value.toFixed(2)} rispetto alla media locale.`
 })
+const forecastBasePrice = computed(() => savingsStation.value?.price ?? cheapest.value?.price ?? averagePrice.value ?? null)
+const forecastSpread = computed(() => {
+  if (averagePrice.value == null || cheapest.value == null) return 0
+  return Math.max(0, averagePrice.value - cheapest.value.price)
+})
+const forecastDirection = computed(() => {
+  if (forecastBasePrice.value == null) return 0
+
+  if (forecastSpread.value >= 0.05) return -1
+  if (forecastSpread.value <= 0.015) return 1
+  return 0
+})
+const forecastScenarios = computed(() => {
+  if (forecastBasePrice.value == null) return []
+
+  const now = new Date()
+  const dayFormatter = new Intl.DateTimeFormat('it-IT', { weekday: 'short' })
+  const deltas = forecastDirection.value === -1
+    ? [-0.012, -0.018, -0.009]
+    : forecastDirection.value === 1
+      ? [0.008, 0.015, 0.021]
+      : [0.002, -0.004, 0.003]
+
+  return deltas.map((delta, index) => {
+    const date = new Date(now)
+    date.setDate(now.getDate() + index + 1)
+    const projectedPrice = Math.max(1, forecastBasePrice.value + delta)
+
+    return {
+      id: `forecast-${index}`,
+      label: index === 0 ? 'Domani' : dayFormatter.format(date),
+      delta,
+      price: projectedPrice,
+    }
+  })
+})
+const forecastRecommendation = computed(() => {
+  if (!forecastScenarios.value.length || forecastBasePrice.value == null) {
+    return 'Attiva la posizione per vedere una simulazione dei prossimi giorni.'
+  }
+
+  const lowestForecast = [...forecastScenarios.value].sort((a, b) => a.price - b.price)[0]
+  const deltaToday = lowestForecast.price - forecastBasePrice.value
+
+  if (deltaToday >= 0.01) {
+    return 'Scenario ipotetico: oggi sembra ancora il momento piu conveniente per fare rifornimento.'
+  }
+
+  if (lowestForecast.label === 'Domani') {
+    return 'Scenario ipotetico: domani potresti trovare un piccolo margine di risparmio.'
+  }
+
+  return `Scenario ipotetico: potresti trovare il prezzo migliore verso ${lowestForecast.label.toLowerCase()}.`
+})
+const bestForecastScenario = computed(() => {
+  if (!forecastScenarios.value.length) return null
+  return [...forecastScenarios.value].sort((a, b) => a.price - b.price)[0]
+})
+const notificationStatusLabel = computed(() => {
+  if (!notificationsSupported.value) return 'Notifiche non supportate su questo browser.'
+  if (notificationPermission.value === 'denied') return 'Permesso notifiche negato nel browser.'
+  if (notificationsEnabled.value && notificationPermission.value === 'granted') {
+    return 'Avvisi attivi sui preferiti e sui cali di prezzo.'
+  }
+  return 'Ricevi avvisi quando un preferito scende di prezzo.'
+})
+
+function sliderPct(value) {
+  return `${((value - 1) / 49) * 100}%`
+}
+
+function openSavingsFilters() {
+  savingsFiltersOpen.value = true
+}
+
+function closeSavingsFilters() {
+  savingsFiltersOpen.value = false
+}
 
 watch(bannerMessage, (nextMessage, previousMessage) => {
   if (nextMessage !== previousMessage) {
@@ -122,12 +234,31 @@ watch(bannerMessage, (nextMessage, previousMessage) => {
   }
 })
 
+watch(savingsFiltersOpen, (isOpen) => {
+  document.body.style.overflow = isOpen ? 'hidden' : ''
+})
+
 onMounted(async () => {
+  compactLayoutMedia = window.matchMedia('(max-width: 1024px)')
+  isCompactLayout.value = compactLayoutMedia.matches
+  compactLayoutMedia.addEventListener('change', handleCompactLayoutChange)
+
   try {
     const storedFavorites = window.localStorage.getItem(favoriteStorageKey)
     favoriteIds.value = storedFavorites ? JSON.parse(storedFavorites) : []
   } catch {
     favoriteIds.value = []
+  }
+
+  try {
+    const storedNotifications = window.localStorage.getItem(notificationStorageKey)
+    notificationsEnabled.value = storedNotifications ? JSON.parse(storedNotifications).enabled === true : false
+  } catch {
+    notificationsEnabled.value = false
+  }
+
+  if (notificationsSupported.value) {
+    notificationPermission.value = window.Notification.permission
   }
 
   splashFadeTimer = window.setTimeout(() => {
@@ -144,10 +275,50 @@ onMounted(async () => {
 onUnmounted(() => {
   if (splashFadeTimer) window.clearTimeout(splashFadeTimer)
   if (splashHideTimer) window.clearTimeout(splashHideTimer)
+  compactLayoutMedia?.removeEventListener('change', handleCompactLayoutChange)
+  clearNotificationRefreshTimer()
+  document.body.style.overflow = ''
 })
 
 watch(favoriteIds, (nextIds) => {
   window.localStorage.setItem(favoriteStorageKey, JSON.stringify(nextIds))
+}, { deep: true })
+
+watch(notificationsEnabled, (enabled) => {
+  window.localStorage.setItem(notificationStorageKey, JSON.stringify({ enabled }))
+  syncNotificationRefreshTimer()
+})
+
+watch([effectivePosition, notificationPermission], () => {
+  syncNotificationRefreshTimer()
+}, { deep: true })
+
+watch([sorted, favoriteIds], ([nextStations]) => {
+  if (!nextStations.length) {
+    favoritePriceSnapshot.value = {}
+    hasNotificationBaseline.value = false
+    lastFavoriteWinnerNotice.value = ''
+    return
+  }
+
+  const nextSnapshot = Object.fromEntries(
+    nextStations
+      .filter((station) => favoriteIds.value.includes(station.id))
+      .map((station) => [station.id, station.price])
+  )
+
+  if (!hasNotificationBaseline.value) {
+    favoritePriceSnapshot.value = nextSnapshot
+    hasNotificationBaseline.value = true
+    return
+  }
+
+  if (notificationsEnabled.value && notificationPermission.value === 'granted') {
+    notifyFavoritePriceDrops(nextStations)
+    notifyFavoriteWinner()
+  }
+
+  favoritePriceSnapshot.value = nextSnapshot
 }, { deep: true })
 
 function handleSelectLocation(location) {
@@ -222,25 +393,93 @@ function updateFilters(nextFilters) {
   filters.value = nextFilters
 }
 
-async function handleHeroPrimaryAction() {
-  currentPage.value = 'home'
-  manualLocation.value = null
-  selectedStation.value = null
-  await requestLocation()
-  await nextTick()
-  mapWrapRef.value?.scrollIntoView({
-    behavior: 'smooth',
-    block: 'start',
+function handleCompactLayoutChange(event) {
+  isCompactLayout.value = event.matches
+}
+
+function clearNotificationRefreshTimer() {
+  if (notificationRefreshTimer) {
+    window.clearInterval(notificationRefreshTimer)
+    notificationRefreshTimer = null
+  }
+}
+
+function syncNotificationRefreshTimer() {
+  clearNotificationRefreshTimer()
+
+  if (
+    !notificationsEnabled.value ||
+    notificationPermission.value !== 'granted' ||
+    !effectivePosition.value
+  ) {
+    return
+  }
+
+  notificationRefreshTimer = window.setInterval(() => {
+    void refreshStations()
+  }, 5 * 60 * 1000)
+}
+
+async function enableNotifications() {
+  if (!notificationsSupported.value) return
+
+  if (window.Notification.permission === 'default') {
+    notificationPermission.value = await window.Notification.requestPermission()
+  } else {
+    notificationPermission.value = window.Notification.permission
+  }
+
+  notificationsEnabled.value = notificationPermission.value === 'granted'
+}
+
+function disableNotifications() {
+  notificationsEnabled.value = false
+}
+
+function showBrowserNotification(title, body, tag) {
+  if (!notificationsSupported.value || notificationPermission.value !== 'granted') return
+
+  new window.Notification(title, {
+    body,
+    tag,
+    icon: '/favicon.svg',
+    badge: '/favicon.svg',
   })
 }
 
-async function handleHeroSecondaryAction() {
-  currentPage.value = 'home'
-  await nextTick()
-  locationSearchRef.value?.scrollIntoView({
-    behavior: 'smooth',
-    block: 'start',
-  })
+function notifyFavoritePriceDrops(currentStations) {
+  currentStations
+    .filter((station) => favoriteIds.value.includes(station.id))
+    .forEach((station) => {
+      const previousPrice = favoritePriceSnapshot.value[station.id]
+      if (previousPrice == null) return
+
+      const droppedEnough = previousPrice - station.price >= 0.02
+      if (!droppedEnough) return
+
+      showBrowserNotification(
+        'Prezzo in calo su un preferito',
+        `${station.brand} ora e a € ${station.price.toFixed(3)} (${(previousPrice - station.price).toFixed(3)} in meno).`,
+        `favorite-drop-${station.id}`
+      )
+    })
+}
+
+function notifyFavoriteWinner() {
+  if (!favoriteStations.value.length || !cheapest.value) return
+
+  const favoriteWinner = favoriteStations.value[0]
+  if (favoriteWinner.id !== cheapest.value.id) return
+
+  const noticeKey = `${favoriteWinner.id}-${favoriteWinner.price.toFixed(3)}`
+  if (lastFavoriteWinnerNotice.value === noticeKey) return
+
+  lastFavoriteWinnerNotice.value = noticeKey
+  showBrowserNotification(
+    'Un tuo preferito e il migliore in zona',
+    `${favoriteWinner.brand} e il distributore piu conveniente vicino a te a € ${favoriteWinner.price.toFixed(3)}.`,
+    `favorite-best-${favoriteWinner.id}`
+  )
 }
 </script>
 
@@ -249,8 +488,7 @@ async function handleHeroSecondaryAction() {
     <Transition name="splash-fade">
       <div v-if="showSplash" class="splash-screen" :class="{ 'splash-screen--leaving': splashLeaving }">
         <div class="splash-mark">
-          <h1 class="splash-title">FUEL RADAR</h1>
-          <FuelRadarLogo :size="72" />
+          <h1 class="splash-title">Fuel Radar</h1>
         </div>
       </div>
     </Transition>
@@ -260,10 +498,9 @@ async function handleHeroSecondaryAction() {
 
     <div class="page-content">
       <AppHeader
+        v-if="showHomeChrome"
         :station-count="stationCount"
         :search-mode="searchMode"
-        @primary-action="handleHeroPrimaryAction"
-        @secondary-action="handleHeroSecondaryAction"
       />
 
       <Transition name="banner-fade">
@@ -276,7 +513,7 @@ async function handleHeroSecondaryAction() {
       </Transition>
 
       <main class="main-shell">
-        <section ref="locationSearchRef" class="hero-stack surface-enter">
+        <section v-if="showHomeChrome" ref="locationSearchRef" class="hero-stack surface-enter">
           <LocationSearch
             :manual-location="manualLocation"
             :current-position="position"
@@ -286,7 +523,7 @@ async function handleHeroSecondaryAction() {
           />
         </section>
 
-        <div class="page-switcher surface-enter surface-enter--delay-1" aria-label="Sezioni principali">
+        <div v-if="!isCompactLayout" class="page-switcher surface-enter surface-enter--delay-1" aria-label="Sezioni principali">
           <button
             v-for="page in pages"
             :key="page.id"
@@ -360,36 +597,123 @@ async function handleHeroSecondaryAction() {
 
           <section v-else-if="currentPage === 'risparmi'" key="risparmi" class="dashboard dashboard--single">
             <section class="savings-section surface-enter surface-enter--delay-2">
-              <div class="savings-head">
-                <div>
-                  <p class="section-kicker">Risparmi</p>
-                  <h2 class="section-title">Quanto ti conviene davvero</h2>
+              <Teleport to="body">
+                <Transition name="filter-modal-fade">
+                  <div v-if="savingsFiltersOpen" class="filter-modal" @click.self="closeSavingsFilters">
+                    <div class="filter-modal__panel" role="dialog" aria-modal="true" aria-label="Filtri risparmio">
+                      <div class="filter-modal__header">
+                        <div class="filter-modal__title-wrap">
+                          <h2 class="filter-modal__title">FILTRI</h2>
+                        </div>
+                        <button class="filter-modal__close" type="button" aria-label="Chiudi filtri" @click="closeSavingsFilters">
+                          <svg viewBox="0 0 24 24" focusable="false">
+                            <path d="M6.28 5.22 12 10.94l5.72-5.72 1.06 1.06L13.06 12l5.72 5.72-1.06 1.06L12 13.06l-5.72 5.72-1.06-1.06L10.94 12 5.22 6.28Z" fill="currentColor" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      <div class="filter-modal__body">
+                        <div class="map-filter-group">
+                          <span class="map-filter-label">Carburante</span>
+                          <div class="map-filter-chips">
+                            <button
+                              v-for="option in savingsFuelOptions"
+                              :key="option.value"
+                              class="map-chip"
+                              :class="{ 'map-chip--active': filters.fuelType === option.value }"
+                              type="button"
+                              @click="updateFilters({ ...filters, fuelType: option.value })"
+                            >
+                              {{ option.label }}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div class="map-filter-group">
+                          <span class="map-filter-label">Modalita</span>
+                          <div class="map-filter-chips">
+                            <button
+                              v-for="option in savingsModeOptions"
+                              :key="option.value"
+                              class="map-chip"
+                              :class="{ 'map-chip--active': filters.mode === option.value }"
+                              type="button"
+                              @click="updateFilters({ ...filters, mode: option.value })"
+                            >
+                              {{ option.label }}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div class="map-filter-group map-filter-group--range">
+                          <div class="map-range-head">
+                            <span class="map-filter-label">Raggio</span>
+                            <strong>{{ filters.radius }} km</strong>
+                          </div>
+                          <input
+                            class="map-slider"
+                            type="range"
+                            min="1"
+                            max="50"
+                            step="1"
+                            :value="filters.radius"
+                            :style="{ '--pct': sliderPct(filters.radius) }"
+                            @input="updateFilters({ ...filters, radius: Number($event.target.value) })"
+                          />
+                        </div>
+
+                        <div class="map-filter-group">
+                          <span class="map-filter-label">Spesa</span>
+                          <div class="map-filter-chips map-filter-chips--amount">
+                            <button
+                              v-for="amount in savingsAmountOptions"
+                              :key="amount"
+                              class="map-chip map-chip--amount"
+                              :class="{ 'map-chip--active': savingsAmount === amount }"
+                              type="button"
+                              @click="savingsAmount = amount"
+                            >
+                              € {{ amount }}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button class="filter-modal__apply" type="button" @click="closeSavingsFilters">
+                        Applica filtri
+                      </button>
+                    </div>
+                  </div>
+                </Transition>
+              </Teleport>
+
+              <div class="page-titlebar page-titlebar--mobile">
+                <div class="brand-row">
+                  <span class="brand-dot" aria-hidden="true"></span>
+                  <span class="brand-label">Fuel Radar</span>
                 </div>
-                <p class="section-text">{{ savingsMessage }}</p>
               </div>
 
-              <div class="savings-amounts" role="tablist" aria-label="Importo rifornimento">
-                <button
-                  v-for="amount in savingsAmountOptions"
-                  :key="amount"
-                  class="savings-pill"
-                  :class="{ 'savings-pill--active': savingsAmount === amount }"
-                  type="button"
-                  @click="savingsAmount = amount"
-                >
-                  € {{ amount }}
-                </button>
-              </div>
+              <button class="map-filter-trigger savings-filter-trigger" type="button" @click="openSavingsFilters">
+                <span class="map-filter-trigger__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M5 7h14v2H5zm2 5h10v2H7zm3 5h4v2h-4z" fill="currentColor" />
+                  </svg>
+                </span>
+                <span class="map-filter-trigger__copy">
+                  <span class="map-filter-trigger__pill">{{ savingsFuelSummary[filters.fuelType] }}</span>
+                  <span class="map-filter-trigger__pill">{{ savingsModeSummary[filters.mode] }}</span>
+                  <span class="map-filter-trigger__pill">{{ filters.radius }} km</span>
+                  <span class="map-filter-trigger__pill">€ {{ savingsAmount }}</span>
+                </span>
+              </button>
 
               <div class="savings-grid">
                 <article class="savings-card">
                   <span class="savings-label">Stazione di riferimento</span>
-                  <strong class="savings-value savings-value--name">
-                    {{ savingsStation?.brand || 'In attesa' }}
+                  <strong class="savings-value savings-value--name savings-value--brand">
+                    {{ savingsStation?.brand?.toUpperCase() || 'IN ATTESA' }}
                   </strong>
-                  <span class="savings-note">
-                    {{ savingsStation?.name || 'Seleziona una zona per iniziare.' }}
-                  </span>
                 </article>
 
                 <article class="savings-card">
@@ -397,7 +721,6 @@ async function handleHeroSecondaryAction() {
                   <strong class="savings-value">
                     {{ averagePrice != null ? `€ ${averagePrice.toFixed(3)}` : '—' }}
                   </strong>
-                  <span class="savings-note">Calcolato sui distributori filtrati attorno a te.</span>
                 </article>
 
                 <article class="savings-card savings-card--accent">
@@ -405,21 +728,77 @@ async function handleHeroSecondaryAction() {
                   <strong class="savings-value">
                     {{ estimatedSavings > 0 ? `€ ${estimatedSavings.toFixed(2)}` : '€ 0.00' }}
                   </strong>
-                  <span class="savings-note">
-                    {{ estimatedLiters ? `${estimatedLiters.toFixed(1)} litri circa` : 'Attiva una ricerca per stimarlo.' }}
-                  </span>
                 </article>
               </div>
+
+              <section class="forecast-panel">
+                <div class="forecast-head">
+                  <span class="forecast-label">Previsioni</span>
+                </div>
+
+                <div class="forecast-grid">
+                  <article
+                    v-for="scenario in forecastScenarios"
+                    :key="scenario.id"
+                    class="forecast-card"
+                    :class="{
+                      'forecast-card--up': scenario.delta > 0.004,
+                      'forecast-card--down': scenario.delta < -0.004,
+                      'forecast-card--best': bestForecastScenario?.id === scenario.id,
+                    }"
+                  >
+                    <span class="forecast-day">{{ scenario.label }}</span>
+                    <strong class="forecast-price">€ {{ scenario.price.toFixed(3) }}</strong>
+                    <span class="forecast-delta">
+                      {{ scenario.delta > 0 ? '+' : '' }}€ {{ scenario.delta.toFixed(3) }}
+                    </span>
+                  </article>
+                </div>
+
+                <p v-if="bestForecastScenario" class="forecast-highlight">
+                  Momento migliore: <strong>{{ bestForecastScenario.label.toUpperCase() }}</strong> a
+                  <strong>€ {{ bestForecastScenario.price.toFixed(3) }}</strong>
+                </p>
+              </section>
             </section>
           </section>
 
           <section v-else key="preferiti" class="dashboard dashboard--single">
             <section class="favorites-section surface-enter surface-enter--delay-2">
-              <div class="favorites-head">
-                <p class="section-kicker">Preferiti</p>
-                <h2 class="section-title">Le tue soste salvate</h2>
-                <p class="section-text">Aggiungi la stellina ai distributori che vuoi ritrovare subito.</p>
+              <div class="page-titlebar page-titlebar--mobile">
+                <div class="brand-row">
+                  <span class="brand-dot" aria-hidden="true"></span>
+                  <span class="brand-label">Fuel Radar</span>
+                </div>
               </div>
+
+              <section class="notification-panel">
+                <div class="notification-copy">
+                  <span class="notification-label">Notifiche</span>
+                  <p class="notification-text">{{ notificationStatusLabel }}</p>
+                </div>
+
+                <div class="notification-actions">
+                  <button
+                    v-if="!notificationsEnabled"
+                    class="notification-btn"
+                    type="button"
+                    :disabled="!notificationsSupported || notificationPermission === 'denied'"
+                    @click="enableNotifications"
+                  >
+                    Attiva notifiche
+                  </button>
+
+                  <button
+                    v-else
+                    class="notification-btn notification-btn--secondary"
+                    type="button"
+                    @click="disableNotifications"
+                  >
+                    Disattiva notifiche
+                  </button>
+                </div>
+              </section>
 
               <div v-if="favoriteStations.length" class="favorites-grid">
                 <StationCard
@@ -489,15 +868,14 @@ async function handleHeroSecondaryAction() {
 }
 
 .splash-title {
-  font-size: clamp(2.4rem, 8vw, 4.8rem);
+  font-family: var(--font-display);
+  font-size: clamp(2.8rem, 8.2vw, 5.4rem);
   font-weight: 800;
-  letter-spacing: -0.05em;
-  text-transform: uppercase;
+  letter-spacing: -0.085em;
+  line-height: 0.92;
+  text-transform: none;
   color: #fff8f1;
-  -webkit-text-stroke: 1px rgba(255, 166, 99, 0.34);
-  text-shadow:
-    0 16px 34px rgba(0, 0, 0, 0.28),
-    0 0 26px rgba(255, 122, 26, 0.14);
+  text-shadow: 0 18px 34px rgba(0, 0, 0, 0.22);
   animation: splash-rise 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
@@ -542,6 +920,41 @@ async function handleHeroSecondaryAction() {
   display: grid;
   gap: 18px;
   margin-bottom: 20px;
+}
+
+.mobile-metrics {
+  display: none;
+}
+
+.mobile-metric-card {
+  padding: 14px 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.018)),
+    rgba(11, 13, 18, 0.72);
+  display: grid;
+  gap: 4px;
+  text-align: center;
+}
+
+.mobile-metric-label {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mobile-metric-value {
+  color: #fff7f0;
+  font-size: clamp(1.1rem, 3vw, 1.5rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+}
+
+.mobile-metric-value--search {
+  font-size: clamp(0.9rem, 2.4vw, 1.12rem);
 }
 
 .page-switcher {
@@ -612,7 +1025,7 @@ async function handleHeroSecondaryAction() {
 
 .results-wrap {
   display: grid;
-  gap: 30px;
+  gap: 56px;
 }
 
 .favorites-section,
@@ -629,21 +1042,55 @@ async function handleHeroSecondaryAction() {
   text-align: center;
 }
 
+.page-titlebar {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.brand-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffb26a, #ff7a1a);
+  box-shadow: 0 0 0 6px rgba(255, 122, 26, 0.12);
+}
+
+.brand-label {
+  color: #fff6ef;
+  font-family: var(--font-display);
+  font-size: clamp(1.18rem, 2.35vw, 1.4rem);
+  font-weight: 800;
+  letter-spacing: -0.07em;
+}
+
 .section-kicker {
-  color: rgba(255, 183, 133, 0.8);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
+  position: relative;
+  display: inline-grid;
+  gap: 10px;
+  justify-self: center;
+  color: #fff5ed;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-.section-title {
-  font-size: 1.28rem;
-  font-weight: 800;
-  letter-spacing: -0.05em;
-  text-transform: uppercase;
-  color: #fff8f1;
-  -webkit-text-stroke: 0.7px rgba(255, 166, 99, 0.18);
+.section-kicker::after,
+.forecast-label::after {
+  content: '';
+  width: 84px;
+  height: 2px;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.14), rgba(244, 177, 131, 0.82), rgba(255, 255, 255, 0.14));
 }
 
 .section-text,
@@ -652,20 +1099,222 @@ async function handleHeroSecondaryAction() {
   line-height: 1.6;
 }
 
-.savings-amounts {
+.map-filter-trigger {
+  min-height: 64px;
+  width: min(100%, 520px);
+  margin: 0 auto;
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(228, 164, 111, 0.1), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)),
+    rgba(14, 17, 23, 0.76);
+  color: #fff7ef;
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  align-items: center;
   justify-content: center;
+  gap: 0.85rem;
+  text-align: center;
+  font: inherit;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 20px 34px rgba(0, 0, 0, 0.14);
+  cursor: pointer;
+  transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
 }
 
-.savings-pill {
+.map-filter-trigger:hover {
+  transform: translateY(-1px);
+  border-color: rgba(207, 127, 73, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 24px 36px rgba(0, 0, 0, 0.18);
+}
+
+.map-filter-trigger__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(228, 164, 111, 0.2), rgba(207, 127, 73, 0.12)),
+    rgba(255, 255, 255, 0.03);
+  color: #efc6a2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 12px 20px rgba(0, 0, 0, 0.14);
+}
+
+.map-filter-trigger__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.map-filter-trigger__copy {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.map-filter-trigger__pill {
+  min-height: 32px;
+  padding: 0 0.78rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.76);
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.filter-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(7, 9, 13, 0.58);
+  backdrop-filter: blur(10px);
+}
+
+.filter-modal__panel {
+  width: min(680px, 100%);
+  max-height: min(86dvh, 820px);
+  padding: 1.1rem;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(228, 164, 111, 0.14), transparent 24%),
+    linear-gradient(180deg, #191d26 0%, #11151d 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 32px 70px rgba(0, 0, 0, 0.32);
+  display: grid;
+  gap: 1rem;
+}
+
+.filter-modal__header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   min-height: 42px;
-  padding: 0 16px;
+}
+
+.filter-modal__title-wrap {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.filter-modal__title {
+  color: #fff8f1;
+  font-size: clamp(1.3rem, 3vw, 1.7rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.filter-modal__close {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.76);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.filter-modal__close svg {
+  width: 18px;
+  height: 18px;
+}
+
+.filter-modal__body {
+  display: grid;
+  grid-template-columns: 1.1fr 1.1fr 0.9fr 1.1fr;
+  gap: 12px;
+  overflow: auto;
+  align-items: start;
+}
+
+.filter-modal__apply {
+  min-height: 50px;
+  border: 0;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #e4a46f, #cf7f49 58%, #a55e33);
+  color: white;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 16px 28px rgba(207, 127, 73, 0.2);
+}
+
+.filter-modal-fade-enter-active,
+.filter-modal-fade-leave-active {
+  transition: opacity 180ms ease;
+}
+
+.filter-modal-fade-enter-from,
+.filter-modal-fade-leave-to {
+  opacity: 0;
+}
+
+.map-filter-group {
+  padding: 16px 16px 14px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.018)),
+    rgba(14, 17, 23, 0.74);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 18px 30px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 12px;
+}
+
+.map-filter-group--range {
+  align-content: center;
+}
+
+.map-filter-label {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.map-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.map-filter-chips--amount {
+  flex-wrap: nowrap;
+}
+
+.map-chip {
+  min-height: 38px;
+  padding: 0 14px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.76);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.75);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
@@ -673,20 +1322,75 @@ async function handleHeroSecondaryAction() {
     transform var(--transition),
     border-color var(--transition),
     background var(--transition),
-    color var(--transition),
-    box-shadow var(--transition);
+    color var(--transition);
 }
 
-.savings-pill:hover {
+.map-chip--amount {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 10px;
+  font-size: 0.8rem;
+}
+
+.map-chip:hover {
   transform: translateY(-1px);
-  border-color: rgba(255, 122, 26, 0.24);
+  border-color: rgba(207, 127, 73, 0.28);
 }
 
-.savings-pill--active {
-  background: linear-gradient(135deg, #ff9c52, #ff7a1a 55%, #d95504);
+.map-chip--active {
+  background: linear-gradient(135deg, #e4a46f, #cf7f49 58%, #a55e33);
   border-color: transparent;
   color: white;
-  box-shadow: 0 12px 24px rgba(255, 122, 26, 0.18);
+  box-shadow: 0 12px 22px rgba(207, 127, 73, 0.16);
+}
+
+.map-range-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #fff4eb;
+  font-weight: 700;
+}
+
+.map-slider {
+  width: 100%;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      90deg,
+      #cf7f49 0,
+      #cf7f49 var(--pct),
+      rgba(255, 255, 255, 0.12) var(--pct),
+      rgba(255, 255, 255, 0.12) 100%
+    );
+  outline: none;
+  cursor: pointer;
+}
+
+.map-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid white;
+  background: #cf7f49;
+  box-shadow: 0 10px 18px rgba(207, 127, 73, 0.24);
+}
+
+.map-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid white;
+  background: #cf7f49;
+  box-shadow: 0 10px 18px rgba(207, 127, 73, 0.24);
+}
+
+.savings-filter-trigger {
+  margin-top: 0;
 }
 
 .savings-grid {
@@ -698,23 +1402,28 @@ async function handleHeroSecondaryAction() {
 .savings-card {
   padding: 20px 18px;
   border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02)),
-    rgba(14, 17, 24, 0.78);
+    radial-gradient(circle at top center, rgba(255, 255, 255, 0.06), transparent 52%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+    rgba(14, 17, 24, 0.82);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 18px 34px rgba(0, 0, 0, 0.16);
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 20px 40px rgba(0, 0, 0, 0.18);
   display: grid;
-  gap: 10px;
+  gap: 12px;
   text-align: center;
 }
 
 .savings-card--accent {
-  border-color: rgba(255, 147, 74, 0.18);
+  border-color: rgba(207, 127, 73, 0.22);
   background:
-    linear-gradient(180deg, rgba(255, 150, 78, 0.12), rgba(255, 255, 255, 0.03)),
-    rgba(17, 19, 25, 0.84);
+    radial-gradient(circle at top center, rgba(228, 164, 111, 0.14), transparent 52%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+    rgba(17, 19, 25, 0.86);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 22px 42px rgba(0, 0, 0, 0.2);
 }
 
 .savings-label {
@@ -736,15 +1445,193 @@ async function handleHeroSecondaryAction() {
   font-size: clamp(1.15rem, 2.4vw, 1.65rem);
 }
 
+.savings-value--brand {
+  color: #fff8f1;
+}
+
 .savings-note {
   color: rgba(255, 255, 255, 0.62);
   line-height: 1.55;
+}
+
+.forecast-panel {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02)),
+    rgba(14, 17, 24, 0.76);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 18px 34px rgba(0, 0, 0, 0.12);
+}
+
+.forecast-head {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  text-align: center;
+}
+
+.forecast-label {
+  position: relative;
+  display: inline-grid;
+  gap: 10px;
+  color: #fff5ed;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.forecast-card {
+  display: grid;
+  gap: 6px;
+  padding: 16px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.02)),
+    rgba(255, 255, 255, 0.025);
+  text-align: center;
+}
+
+.forecast-card--up {
+  border-color: rgba(207, 127, 73, 0.16);
+}
+
+.forecast-card--down {
+  border-color: rgba(48, 211, 157, 0.16);
+}
+
+.forecast-card--best {
+  border-color: rgba(207, 127, 73, 0.26);
+  background:
+    radial-gradient(circle at top center, rgba(228, 164, 111, 0.12), transparent 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
+    rgba(255, 255, 255, 0.03);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 14px 28px rgba(0, 0, 0, 0.14);
+}
+
+.forecast-day {
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.forecast-price {
+  color: #fff7f0;
+  font-size: clamp(1.05rem, 2.2vw, 1.4rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+}
+
+.forecast-delta {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.forecast-highlight {
+  margin-top: 10px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.96rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.5;
+}
+
+.forecast-highlight strong {
+  color: #fff8f1;
+  font-size: 1.02em;
+  letter-spacing: -0.02em;
 }
 
 .favorites-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
+}
+
+.notification-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02)),
+    rgba(13, 16, 22, 0.78);
+}
+
+.notification-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.notification-label {
+  color: rgba(255, 232, 214, 0.86);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.notification-text {
+  color: rgba(255, 255, 255, 0.68);
+  line-height: 1.6;
+}
+
+.notification-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.notification-btn {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #e4a46f, #cf7f49 58%, #a55e33);
+  color: white;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 14px 24px rgba(207, 127, 73, 0.18);
+  transition: transform var(--transition), box-shadow var(--transition), opacity var(--transition);
+}
+
+.notification-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 28px rgba(207, 127, 73, 0.24);
+}
+
+.notification-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.notification-btn--secondary {
+  background:
+    linear-gradient(180deg, rgba(228, 164, 111, 0.14), rgba(207, 127, 73, 0.08)),
+    rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(207, 127, 73, 0.22);
+  box-shadow: 0 10px 20px rgba(207, 127, 73, 0.12);
 }
 
 .favorites-empty {
@@ -915,7 +1802,7 @@ async function handleHeroSecondaryAction() {
   box-shadow: 0 12px 22px rgba(255, 122, 26, 0.2);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 1024px) {
   .main-shell {
     width: min(100%, calc(100% - 20px));
     padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px));
@@ -923,6 +1810,13 @@ async function handleHeroSecondaryAction() {
 
   .hero-stack {
     gap: 16px;
+    margin-bottom: 12px;
+  }
+
+  .mobile-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
     margin-bottom: 18px;
   }
 
@@ -939,12 +1833,49 @@ async function handleHeroSecondaryAction() {
     gap: 24px;
   }
 
+  .dashboard--single {
+    min-height: calc(100dvh - 220px);
+    align-content: start;
+  }
+
+  .page-titlebar--mobile {
+    display: inline-flex;
+    margin: 10px auto 4px;
+  }
+
+  .filter-modal {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .filter-modal__panel {
+    width: 100%;
+    max-height: min(88dvh, 920px);
+    border-radius: 28px 28px 20px 20px;
+  }
+
+  .filter-modal__body {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .results-wrap {
-    gap: 22px;
+    gap: 42px;
   }
 
   .favorites-grid {
     grid-template-columns: 1fr;
+  }
+
+  .notification-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .notification-actions {
+    justify-content: stretch;
+  }
+
+  .notification-btn {
+    width: 100%;
   }
 
   .savings-grid {
@@ -957,12 +1888,61 @@ async function handleHeroSecondaryAction() {
 }
 
 @media (max-width: 560px) {
+  .brand-row {
+    gap: 12px;
+  }
+
+  .brand-dot {
+    width: 11px;
+    height: 11px;
+  }
+
+  .brand-label {
+    font-size: clamp(1.46rem, 5.8vw, 1.82rem);
+  }
+
+  .section-kicker,
+  .forecast-label {
+    font-size: 0.92rem;
+    letter-spacing: 0.14em;
+  }
+
+  .section-kicker::after,
+  .forecast-label::after {
+    width: 72px;
+  }
+
+  .filter-modal__body {
+    grid-template-columns: 1fr;
+  }
+
+
+  .forecast-grid {
+    gap: 10px;
+  }
+
+  .forecast-card {
+    padding: 14px 10px;
+    border-radius: 16px;
+  }
+
+  .forecast-day {
+    font-size: 0.66rem;
+  }
+
+  .forecast-price {
+    font-size: 1rem;
+  }
+
+  .forecast-delta {
+    font-size: 0.74rem;
+  }
   .splash-mark {
     gap: 12px;
   }
 
   .splash-title {
-    font-size: clamp(2rem, 11vw, 3rem);
+    font-size: clamp(2.25rem, 12vw, 3.4rem);
   }
 
   .loading-panel {

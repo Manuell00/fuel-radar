@@ -14,7 +14,7 @@ const emit = defineEmits(['select-station', 'toggle-favorite'])
 <template>
   <section class="top-cards">
     <div class="section-head">
-      <h2 class="section-title">In evidenza</h2>
+      <p class="section-heading">In evidenza</p>
     </div>
 
     <div class="cards-grid">
@@ -52,22 +52,33 @@ const emit = defineEmits(['select-station', 'toggle-favorite'])
 <style scoped>
 .top-cards {
   display: grid;
-  gap: 22px;
+  gap: 28px;
 }
 
 .section-head {
-  display: grid;
-  gap: 8px;
-  margin-bottom: 4px;
-  justify-items: center;
-  text-align: center;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: center;
 }
 
-.section-title {
-  font-size: 1.28rem;
+.section-heading {
+  position: relative;
+  display: inline-grid;
+  gap: 10px;
+  color: #fff5ed;
+  font-size: 1rem;
   font-weight: 800;
-  letter-spacing: -0.04em;
-  color: #fff6ef;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.section-heading::after {
+  content: '';
+  width: 84px;
+  height: 2px;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.14), rgba(255, 160, 92, 0.95), rgba(255, 255, 255, 0.14));
 }
 
 .cards-grid {
@@ -84,16 +95,16 @@ const emit = defineEmits(['select-station', 'toggle-favorite'])
 
 @media (max-width: 560px) {
   .top-cards {
-    gap: 18px;
+    gap: 22px;
   }
 
-  .section-head {
-    gap: 8px;
+  .section-heading {
+    font-size: 0.92rem;
+    letter-spacing: 0.14em;
   }
 
-  .section-title {
-    font-size: 1.02rem;
-    line-height: 1.35;
+  .section-heading::after {
+    width: 72px;
   }
 }
 </style>

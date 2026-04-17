@@ -4,13 +4,35 @@ import { fetchNearbyStations } from '../services/mimitService.js'
 import { haversineDistance } from '../utils/distance.js'
 
 const PREFETCH_RADIUS_KM = 60
+const filterStorageKey = 'fuel-radar-filters'
+const defaultFilters = {
+  fuelType: 'benzina',
+  mode: 'servito',
+  radius: 5,
+}
+
+function getInitialFilters() {
+  if (typeof window === 'undefined') {
+    return { ...defaultFilters }
+  }
+
+  try {
+    const storedFilters = window.localStorage.getItem(filterStorageKey)
+    if (!storedFilters) return { ...defaultFilters }
+
+    const parsed = JSON.parse(storedFilters)
+    return {
+      fuelType: parsed.fuelType ?? defaultFilters.fuelType,
+      mode: parsed.mode ?? defaultFilters.mode,
+      radius: Number.isFinite(parsed.radius) ? parsed.radius : defaultFilters.radius,
+    }
+  } catch {
+    return { ...defaultFilters }
+  }
+}
 
 export function useStations(userPosition) {
-  const filters = ref({
-    fuelType: 'tutti',
-    mode: 'tutti',
-    radius: 5,
-  })
+  const filters = ref(getInitialFilters())
 
   const rawStations = ref([])
   const stationsLoading = ref(false)
@@ -169,6 +191,11 @@ export function useStations(userPosition) {
       await loadStations()
     }
   }, { immediate: true, deep: true })
+
+  watch(filters, (nextFilters) => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(filterStorageKey, JSON.stringify(nextFilters))
+  }, { deep: true })
 
   return {
     filters,
