@@ -31,10 +31,14 @@ const hasNotificationBaseline = ref(false)
 const favoritePriceSnapshot = ref({})
 const lastFavoriteWinnerNotice = ref('')
 
+const isDrivingMode = ref(false)
+const isNightMode = ref(false)
+
 let splashFadeTimer = null
 let splashHideTimer = null
 let compactLayoutMedia = null
 let notificationRefreshTimer = null
+let nightModeTimer = null
 
 const {
   position,
@@ -62,6 +66,8 @@ const {
   stationsError,
   usingFallback,
   refreshStations,
+  publicationKey,
+  getTrend,
 } = useStations(effectivePosition)
 
 const loading = computed(() => geoLoading.value || stationsLoading.value)
@@ -149,6 +155,25 @@ const savingsMessage = computed(() => {
 
   return `Con ${savingsAmount.value} euro di rifornimento risparmi circa € ${estimatedSavings.value.toFixed(2)} rispetto alla media locale.`
 })
+// "Vai subito" CTA — URL di navigazione verso il distributore più economico
+const goNowUrl = computed(() => {
+  if (!cheapest.value) return null
+  const { lat, lng } = cheapest.value
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`
+})
+
+const showGoNowCta = computed(() => !!goNowUrl.value && currentPage.value === 'home' && !isDrivingMode.value)
+
+// Label "Ultimo aggiornamento"
+const lastUpdateLabel = computed(() => {
+  if (!publicationKey.value) return ''
+  const today = new Date().toISOString().slice(0, 10)
+  const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
+  if (publicationKey.value === today) return 'Prezzi aggiornati oggi alle 08:30'
+  if (publicationKey.value === yesterday) return 'Prezzi di ieri'
+  return `Prezzi del ${publicationKey.value}`
+})
+
 const forecastBasePrice = computed(() => savingsStation.value?.price ?? cheapest.value?.price ?? averagePrice.value ?? null)
 const forecastSpread = computed(() => {
   if (averagePrice.value == null || cheapest.value == null) return 0
@@ -216,6 +241,21 @@ const notificationStatusLabel = computed(() => {
   return 'Ricevi avvisi quando un preferito scende di prezzo.'
 })
 
+function checkDrivingMode() {
+  const isTouch = navigator.maxTouchPoints > 0 || 'ontouchstart' in window
+  const isLandscape = window.innerWidth > window.innerHeight
+  isDrivingMode.value = isTouch && isLandscape && currentPage.value === 'home'
+}
+
+function checkNightMode() {
+  const hour = new Date().getHours()
+  isNightMode.value = hour >= 21 || hour < 6
+}
+
+function exitDrivingMode() {
+  isDrivingMode.value = false
+}
+
 function sliderPct(value) {
   return `${((value - 1) / 49) * 100}%`
 }
@@ -233,6 +273,8 @@ watch(bannerMessage, (nextMessage, previousMessage) => {
     dismissedBanner.value = ''
   }
 })
+
+watch(currentPage, checkDrivingMode)
 
 watch(savingsFiltersOpen, (isOpen) => {
   document.body.style.overflow = isOpen ? 'hidden' : ''
@@ -261,6 +303,12 @@ onMounted(async () => {
     notificationPermission.value = window.Notification.permission
   }
 
+  checkNightMode()
+  nightModeTimer = window.setInterval(checkNightMode, 60_000)
+
+  window.addEventListener('resize', checkDrivingMode)
+  window.addEventListener('orientationchange', checkDrivingMode)
+
   splashFadeTimer = window.setTimeout(() => {
     splashLeaving.value = true
   }, 1050)
@@ -275,7 +323,10 @@ onMounted(async () => {
 onUnmounted(() => {
   if (splashFadeTimer) window.clearTimeout(splashFadeTimer)
   if (splashHideTimer) window.clearTimeout(splashHideTimer)
+  if (nightModeTimer) window.clearInterval(nightModeTimer)
   compactLayoutMedia?.removeEventListener('change', handleCompactLayoutChange)
+  window.removeEventListener('resize', checkDrivingMode)
+  window.removeEventListener('orientationchange', checkDrivingMode)
   clearNotificationRefreshTimer()
   document.body.style.overflow = ''
 })
@@ -484,7 +535,7 @@ function notifyFavoriteWinner() {
 </script>
 
 <template>
-  <div class="app-shell">
+  <div class="app-shell" :class="{ 'app-shell--night': isNightMode }">
     <Transition name="splash-fade">
       <div v-if="showSplash" class="splash-screen" :class="{ 'splash-screen--leaving': splashLeaving }">
         <div class="splash-mark">
@@ -570,16 +621,19 @@ function notifyFavoriteWinner() {
                   :nearest="nearest"
                   :best-compromise="bestCompromise"
                   :favorite-ids="favoriteIds"
+                  :get-trend="getTrend"
                   @select-station="(station) => selectStation(station, { scrollToMap: true })"
                   @toggle-favorite="toggleFavorite"
                 />
               </section>
 
               <section v-if="sorted.length" class="surface-enter surface-enter--delay-4">
+                <p v-if="lastUpdateLabel && !usingFallback" class="update-label">{{ lastUpdateLabel }}</p>
                 <StationList
                   :stations="sorted"
                   :selected-station-id="selectedStation?.id ?? null"
                   :favorite-ids="favoriteIds"
+                  :get-trend="getTrend"
                   @select-station="(station) => selectStation(station, { scrollToMap: true })"
                   @toggle-favorite="toggleFavorite"
                 />
@@ -821,6 +875,48 @@ function notifyFavoriteWinner() {
         </Transition>
       </main>
     </div>
+
+    <!-- Pulsante "Vai subito" — CTA fisso verso il distributore più economico -->
+    <Transition name="gonow-fade">
+      <a
+        v-if="showGoNowCta"
+        class="gonow-cta"
+        :href="goNowUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+        :aria-label="`Naviga verso ${cheapest?.brand} a € ${cheapest?.price?.toFixed(3)}`"
+      >
+        <span class="gonow-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        </span>
+        <span class="gonow-copy">
+          <span class="gonow-label">Vai subito</span>
+          <span class="gonow-detail">{{ cheapest?.brand }} · € {{ cheapest?.price?.toFixed(3) }}</span>
+        </span>
+        <svg class="gonow-arrow" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+      </a>
+    </Transition>
+
+    <!-- Schermata "Guida" — overlay semplificato per uso in auto (landscape + touch) -->
+    <Transition name="driving-fade">
+      <div v-if="isDrivingMode && cheapest" class="driving-overlay" role="dialog" aria-label="Modalità guida">
+        <button class="driving-close" type="button" aria-label="Chiudi modalità guida" @click="exitDrivingMode">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.28 5.22 12 10.94l5.72-5.72 1.06 1.06L13.06 12l5.72 5.72-1.06 1.06L12 13.06l-5.72 5.72-1.06-1.06L10.94 12 5.22 6.28Z"/></svg>
+        </button>
+
+        <div class="driving-body">
+          <p class="driving-brand">{{ cheapest.brand }}</p>
+          <p class="driving-price">€ {{ cheapest.price.toFixed(3) }}</p>
+          <p class="driving-dist">{{ cheapest.distance < 1 ? `${Math.round(cheapest.distance * 1000)} m` : `${cheapest.distance.toFixed(1)} km` }}</p>
+          <p class="driving-name">{{ cheapest.name }}</p>
+        </div>
+
+        <a class="driving-nav" :href="goNowUrl" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          Naviga
+        </a>
+      </div>
+    </Transition>
 
     <nav class="mobile-dock" aria-label="Navigazione mobile">
       <button
@@ -1964,6 +2060,253 @@ function notifyFavoriteWinner() {
   .mobile-dock__item {
     min-height: 42px;
     font-size: 0.82rem;
+  }
+}
+
+/* ── Night mode ───────────────────────────────────── */
+.app-shell--night {
+  filter: brightness(0.84) saturate(0.88);
+}
+
+/* ── Label ultimo aggiornamento ──────────────────── */
+.update-label {
+  margin-bottom: 14px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── Pulsante "Vai subito" ───────────────────────── */
+.gonow-cta {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(18px + 62px + 14px);
+  z-index: 13;
+  display: none;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px 0 14px;
+  height: 58px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff9c52, #ff7a1a 55%, #d95504);
+  color: white;
+  text-decoration: none;
+  box-shadow:
+    0 16px 32px rgba(255, 122, 26, 0.38),
+    0 4px 8px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition: transform var(--transition), box-shadow var(--transition), opacity var(--transition);
+  white-space: nowrap;
+  min-width: 240px;
+  max-width: calc(100vw - 32px);
+  justify-content: center;
+}
+
+.gonow-cta:hover,
+.gonow-cta:active {
+  transform: translateX(-50%) translateY(-2px);
+  box-shadow:
+    0 22px 40px rgba(255, 122, 26, 0.46),
+    0 6px 12px rgba(0, 0, 0, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.gonow-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.gonow-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.gonow-copy {
+  display: grid;
+  gap: 1px;
+  flex: 1;
+}
+
+.gonow-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.88;
+  line-height: 1;
+}
+
+.gonow-detail {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.gonow-arrow {
+  width: 22px;
+  height: 22px;
+  opacity: 0.82;
+  flex: 0 0 auto;
+}
+
+.gonow-fade-enter-active,
+.gonow-fade-leave-active {
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.gonow-fade-enter-from,
+.gonow-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(12px);
+}
+
+/* ── Schermata "Guida" ───────────────────────────── */
+.driving-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background:
+    radial-gradient(circle at center, rgba(255, 122, 26, 0.14), transparent 55%),
+    linear-gradient(180deg, #040507 0%, #080b11 100%);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  align-items: center;
+  justify-items: center;
+  padding: max(20px, env(safe-area-inset-top, 0px)) 24px max(24px, env(safe-area-inset-bottom, 0px));
+  gap: 24px;
+}
+
+.driving-close {
+  justify-self: end;
+  align-self: start;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.8);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.driving-close svg {
+  width: 20px;
+  height: 20px;
+}
+
+.driving-body {
+  display: grid;
+  gap: 8px;
+  text-align: center;
+  justify-items: center;
+}
+
+.driving-brand {
+  color: #ffb37b;
+  font-size: clamp(0.9rem, 2.2vw, 1.1rem);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.driving-price {
+  color: #fff6ef;
+  font-family: var(--font-display);
+  font-size: clamp(4rem, 14vw, 7rem);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: 1;
+}
+
+.driving-dist {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.driving-name {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: clamp(0.82rem, 2vw, 1rem);
+  line-height: 1.4;
+  max-width: 32ch;
+}
+
+.driving-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: min(480px, 100%);
+  min-height: 72px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #ff9c52, #ff7a1a 55%, #d95504);
+  color: white;
+  text-decoration: none;
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 3.5vw, 1.7rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  box-shadow:
+    0 20px 44px rgba(255, 122, 26, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.driving-nav svg {
+  width: 28px;
+  height: 28px;
+}
+
+.driving-nav:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 28px 54px rgba(255, 122, 26, 0.46),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.driving-fade-enter-active,
+.driving-fade-leave-active {
+  transition: opacity 240ms ease, transform 240ms ease;
+}
+
+.driving-fade-enter-from,
+.driving-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.97);
+}
+
+/* ── Mostra "Vai subito" solo su mobile ──────────── */
+@media (max-width: 1024px) {
+  .gonow-cta {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 560px) {
+  .gonow-cta {
+    bottom: calc(max(12px, env(safe-area-inset-bottom, 0px)) + 56px + 14px);
+    height: 52px;
+    min-width: 200px;
+    padding: 0 16px 0 12px;
+    gap: 10px;
+  }
+
+  .gonow-detail {
+    font-size: 0.92rem;
   }
 }
 </style>

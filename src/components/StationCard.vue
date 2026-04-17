@@ -1,12 +1,15 @@
 <script setup>
 import { computed } from 'vue'
 import { formatDistance } from '../utils/distance.js'
+import { hapticLight, hapticMedium } from '../utils/haptic.js'
+import { shareStation } from '../utils/share.js'
 
 const props = defineProps({
   station: { type: Object, required: true },
   type: { type: String, default: 'default' },
   label: { type: String, default: '' },
   isFavorite: { type: Boolean, default: false },
+  trend: { type: Object, default: null },
 })
 
 const emit = defineEmits(['select', 'toggle-favorite'])
@@ -34,12 +37,26 @@ const stationDisplayName = computed(() => {
 })
 
 function selectCard() {
+  hapticLight()
   emit('select', props.station)
 }
 
 function toggleFavorite() {
+  hapticMedium()
   emit('toggle-favorite', props.station)
 }
+
+async function handleShare() {
+  hapticMedium()
+  await shareStation(props.station)
+}
+
+const trendDelta = computed(() => {
+  if (!props.trend) return ''
+  const abs = Math.abs(props.trend.diff)
+  if (abs < 0.001) return ''
+  return (props.trend.diff > 0 ? '+' : '−') + abs.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')
+})
 </script>
 
 <template>
@@ -49,6 +66,18 @@ function toggleFavorite() {
         <span class="card-label">{{ label }}</span>
       </div>
       <div class="card-top-actions">
+        <button
+          class="share-btn"
+          type="button"
+          aria-label="Condividi stazione"
+          @click.stop="handleShare"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/>
+            <polyline points="16 6 12 2 8 6"/>
+            <line x1="12" y1="2" x2="12" y2="15"/>
+          </svg>
+        </button>
         <button
           class="favorite-btn"
           :class="{ 'favorite-btn--active': isFavorite }"
@@ -71,6 +100,20 @@ function toggleFavorite() {
       <div class="card-stats">
         <div class="price-row">
           <strong class="price">€ {{ station.price.toFixed(3) }}</strong>
+          <span
+            v-if="trend && trend.dir !== 'flat'"
+            class="trend"
+            :class="`trend--${trend.dir}`"
+            :title="`Ieri: € ${trend.previousPrice.toFixed(3)}`"
+          >
+            <span class="trend-arrow" aria-hidden="true">{{ trend.dir === 'up' ? '▲' : '▼' }}</span>
+            <span class="trend-delta">{{ trendDelta }}</span>
+          </span>
+          <span
+            v-else-if="trend && trend.dir === 'flat'"
+            class="trend trend--flat"
+            title="Prezzo stabile rispetto a ieri"
+          >=</span>
           <span class="price-meta">{{ fuelNames[station.fuelType] ?? station.fuelType }}</span>
         </div>
         <span class="stats-divider" aria-hidden="true"></span>
@@ -254,6 +297,72 @@ function toggleFavorite() {
   border-color: transparent;
   color: white;
   box-shadow: 0 10px 18px rgba(207, 127, 73, 0.18);
+}
+
+.share-btn {
+  align-self: start;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 220, 193, 0.72);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform var(--transition),
+    border-color var(--transition),
+    background var(--transition),
+    color var(--transition);
+}
+
+.share-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.share-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 178, 117, 0.34);
+  color: #ffd8af;
+}
+
+.trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.trend--up {
+  background: rgba(255, 99, 99, 0.14);
+  color: #ff8f8f;
+}
+
+.trend--down {
+  background: rgba(48, 211, 157, 0.14);
+  color: #6fe3b9;
+}
+
+.trend--flat {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.6);
+  padding: 2px 9px;
+}
+
+.trend-arrow {
+  font-size: 0.68rem;
+}
+
+.trend-delta {
+  font-variant-numeric: tabular-nums;
 }
 
 .card-body {

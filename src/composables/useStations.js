@@ -1,7 +1,8 @@
 import { computed, ref, watch } from 'vue'
 import fallbackStations from '../data/stations.json'
-import { fetchNearbyStations } from '../services/mimitService.js'
+import { fetchNearbyStations, getPublicationKey } from '../services/mimitService.js'
 import { haversineDistance } from '../utils/distance.js'
+import { buildTrendLookup, getPreviousSnapshot, getPreviousSnapshotDate } from '../utils/priceHistory.js'
 
 const PREFETCH_RADIUS_KM = 60
 const filterStorageKey = 'fuel-radar-filters'
@@ -39,6 +40,17 @@ export function useStations(userPosition) {
   const stationsError = ref('')
   const usingFallback = ref(false)
   const liveReady = ref(false)
+  const publicationKey = ref(getPublicationKey())
+  const previousSnapshotDate = ref(null)
+  const getTrend = ref(() => null)
+
+  function refreshTrendLookup() {
+    const prevDate = getPreviousSnapshotDate(publicationKey.value)
+    previousSnapshotDate.value = prevDate
+    const prev = getPreviousSnapshot(publicationKey.value)
+    getTrend.value = buildTrendLookup(prev)
+  }
+  refreshTrendLookup()
 
   function getApplicablePrice(station) {
     const shouldPreferDefaultBenzina =
@@ -165,6 +177,8 @@ export function useStations(userPosition) {
       rawStations.value = stations
       usingFallback.value = false
       liveReady.value = true
+      publicationKey.value = getPublicationKey()
+      refreshTrendLookup()
     } catch {
       rawStations.value = fallbackStations
       usingFallback.value = true
@@ -209,5 +223,8 @@ export function useStations(userPosition) {
     usingFallback,
     liveReady,
     refreshStations,
+    publicationKey,
+    previousSnapshotDate,
+    getTrend,
   }
 }

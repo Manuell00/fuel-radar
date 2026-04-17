@@ -1,14 +1,39 @@
 <script setup>
 import { computed } from 'vue'
 import { formatDistance } from '../utils/distance.js'
+import { hapticLight, hapticMedium } from '../utils/haptic.js'
+import { shareStation } from '../utils/share.js'
 
 const props = defineProps({
   stations: { type: Array, required: true },
   selectedStationId: { type: String, default: null },
   favoriteIds: { type: Array, default: () => [] },
+  getTrend: { type: Function, default: () => null },
 })
 
 const emit = defineEmits(['select-station', 'toggle-favorite'])
+
+function handleSelect(station) {
+  hapticLight()
+  emit('select-station', station)
+}
+
+function handleToggleFavorite(station) {
+  hapticMedium()
+  emit('toggle-favorite', station)
+}
+
+async function handleShare(station) {
+  hapticMedium()
+  await shareStation(station)
+}
+
+function trendDeltaStr(trend) {
+  if (!trend) return ''
+  const abs = Math.abs(trend.diff)
+  if (abs < 0.001) return ''
+  return (trend.diff > 0 ? '+' : '−') + abs.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')
+}
 
 const fuelNames = {
   benzina: 'Benzina',
@@ -52,17 +77,31 @@ function estimateMinutes(distanceKm) {
     <ul class="list">
       <li v-for="station in visibleStations" :key="station.id" class="list-item-wrap">
         <article class="list-item" :class="{ 'list-item--active': selectedStationId === station.id }">
-          <button
-            class="favorite-btn"
-            :class="{ 'favorite-btn--active': favoriteIds.includes(station.id) }"
-            type="button"
-            :aria-pressed="favoriteIds.includes(station.id)"
-            @click.stop="emit('toggle-favorite', station)"
-          >
-            ★
-          </button>
+          <div class="item-actions-top">
+            <button
+              class="action-chip"
+              type="button"
+              aria-label="Condividi stazione"
+              @click.stop="handleShare(station)"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/>
+                <polyline points="16 6 12 2 8 6"/>
+                <line x1="12" y1="2" x2="12" y2="15"/>
+              </svg>
+            </button>
+            <button
+              class="favorite-btn"
+              :class="{ 'favorite-btn--active': favoriteIds.includes(station.id) }"
+              type="button"
+              :aria-pressed="favoriteIds.includes(station.id)"
+              @click.stop="handleToggleFavorite(station)"
+            >
+              ★
+            </button>
+          </div>
 
-          <button class="item-main" type="button" @click="emit('select-station', station)">
+          <button class="item-main" type="button" @click="handleSelect(station)">
             <div class="item-copy">
               <div class="item-top">
                 <div class="item-heading">
@@ -74,6 +113,18 @@ function estimateMinutes(distanceKm) {
 
               <div class="item-stats">
                 <strong class="item-price">€ {{ station.price.toFixed(3) }}</strong>
+                <template v-if="getTrend(station)">
+                  <span
+                    v-if="getTrend(station).dir !== 'flat'"
+                    class="item-trend"
+                    :class="`item-trend--${getTrend(station).dir}`"
+                    :title="`Ieri: € ${getTrend(station).previousPrice.toFixed(3)}`"
+                  >
+                    <span aria-hidden="true">{{ getTrend(station).dir === 'up' ? '▲' : '▼' }}</span>
+                    <span>{{ trendDeltaStr(getTrend(station)) }}</span>
+                  </span>
+                  <span v-else class="item-trend item-trend--flat" title="Prezzo stabile">=</span>
+                </template>
                 <div class="item-meta">
                   <span>{{ formatDistance(station.distance) }}</span>
                   <span>{{ estimateMinutes(station.distance) }} min</span>
@@ -173,11 +224,18 @@ function estimateMinutes(distanceKm) {
   transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
 }
 
-.favorite-btn {
+.item-actions-top {
   position: absolute;
   top: 10px;
   right: 10px;
   z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.favorite-btn,
+.action-chip {
   width: 30px;
   height: 30px;
   border-radius: 50%;
@@ -187,6 +245,9 @@ function estimateMinutes(distanceKm) {
   font-size: 0.92rem;
   line-height: 1;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition:
     transform var(--transition),
     border-color var(--transition),
@@ -195,7 +256,13 @@ function estimateMinutes(distanceKm) {
     box-shadow var(--transition);
 }
 
-.favorite-btn:hover {
+.action-chip svg {
+  width: 13px;
+  height: 13px;
+}
+
+.favorite-btn:hover,
+.action-chip:hover {
   transform: translateY(-1px);
   border-color: rgba(255, 178, 117, 0.34);
   color: #ffd8af;
@@ -207,6 +274,22 @@ function estimateMinutes(distanceKm) {
   color: white;
   box-shadow: 0 10px 18px rgba(207, 127, 73, 0.18);
 }
+
+.item-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.item-trend--up   { background: rgba(255, 99, 99, 0.14); color: #ff8f8f; }
+.item-trend--down { background: rgba(48, 211, 157, 0.14); color: #6fe3b9; }
+.item-trend--flat { background: rgba(255, 255, 255, 0.06); color: rgba(255, 255, 255, 0.6); padding: 2px 9px; }
 
 .list-item::before {
   content: '';

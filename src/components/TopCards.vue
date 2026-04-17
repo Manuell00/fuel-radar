@@ -6,6 +6,7 @@ defineProps({
   nearest: { type: Object, default: null },
   bestCompromise: { type: Object, default: null },
   favoriteIds: { type: Array, default: () => [] },
+  getTrend: { type: Function, default: null },
 })
 
 const emit = defineEmits(['select-station', 'toggle-favorite'])
@@ -24,6 +25,7 @@ const emit = defineEmits(['select-station', 'toggle-favorite'])
         type="cheapest"
         label="Più economico"
         :is-favorite="favoriteIds.includes(cheapest.id)"
+        :trend="getTrend ? getTrend(cheapest) : null"
         @select="emit('select-station', cheapest)"
         @toggle-favorite="emit('toggle-favorite', $event)"
       />
@@ -33,6 +35,7 @@ const emit = defineEmits(['select-station', 'toggle-favorite'])
         type="nearest"
         label="Più vicino"
         :is-favorite="favoriteIds.includes(nearest.id)"
+        :trend="getTrend ? getTrend(nearest) : null"
         @select="emit('select-station', nearest)"
         @toggle-favorite="emit('toggle-favorite', $event)"
       />
@@ -42,6 +45,7 @@ const emit = defineEmits(['select-station', 'toggle-favorite'])
         type="best"
         label="Miglior compromesso"
         :is-favorite="favoriteIds.includes(bestCompromise.id)"
+        :trend="getTrend ? getTrend(bestCompromise) : null"
         @select="emit('select-station', bestCompromise)"
         @toggle-favorite="emit('toggle-favorite', $event)"
       />

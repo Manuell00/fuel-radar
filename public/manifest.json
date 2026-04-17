@@ -1,0 +1,26 @@
+{
+  "name": "Fuel Radar",
+  "short_name": "Fuel Radar",
+  "description": "Trova il distributore di carburante più conveniente vicino a te.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070910",
+  "theme_color": "#f97316",
+  "orientation": "portrait-primary",
+  "lang": "it",
+  "categories": ["navigation", "utilities"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -18,6 +18,7 @@
  */
 
 import { haversineDistance } from '../utils/distance.js'
+import { savePriceSnapshot } from '../utils/priceHistory.js'
 
 const URL_ANAGRAFICA = '/mimit/anagrafica_impianti_attivi.csv'
 const URL_PREZZI     = '/mimit/prezzo_alle_8.csv'
@@ -102,7 +103,7 @@ function formatRomeDateParts(date = new Date()) {
   }
 }
 
-function getPublicationKey(date = new Date()) {
+export function getPublicationKey(date = new Date()) {
   const parts = formatRomeDateParts(date)
   const publishReached =
     parts.hour > PUBLISH_HOUR ||
@@ -323,6 +324,10 @@ export async function fetchNearbyStations(userLat, userLng, maxRadiusKm = 50, op
   }
 
   cacheSet(cacheKey, result)
+
+  // Salva snapshot dei prezzi di oggi per calcolare trend il giorno dopo
+  savePriceSnapshot(getPublicationKey(), result)
+
   return result
 }
 
