@@ -37,13 +37,31 @@ async function getPermissionState() {
 }
 
 async function getApproximatePosition() {
-  const response = await fetch('https://ipwho.is/', { headers: { Accept: 'application/json' } })
-  if (!response.ok) throw new Error('IP geolocation HTTP error')
-  const data = await response.json()
-  if (!data?.success || typeof data.latitude !== 'number' || typeof data.longitude !== 'number') {
-    throw new Error('IP geolocation unavailable')
+  try {
+    const response = await fetch('/api/geoip', {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    })
+
+    if (!response.ok) throw new Error('GeoIP proxy HTTP error')
+
+    const data = await response.json()
+    if (!data?.success || typeof data.lat !== 'number' || typeof data.lng !== 'number') {
+      throw new Error('GeoIP proxy unavailable')
+    }
+
+    return { lat: data.lat, lng: data.lng }
+  } catch {
+    const response = await fetch('https://ipwho.is/', { headers: { Accept: 'application/json' } })
+    if (!response.ok) throw new Error('IP geolocation HTTP error')
+
+    const data = await response.json()
+    if (!data?.success || typeof data.latitude !== 'number' || typeof data.longitude !== 'number') {
+      throw new Error('IP geolocation unavailable')
+    }
+
+    return { lat: data.latitude, lng: data.longitude }
   }
-  return { lat: data.latitude, lng: data.longitude }
 }
 
 function getGeolocationErrorMessage(permissionState, browserContext, userInitiated) {
