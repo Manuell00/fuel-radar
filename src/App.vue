@@ -1696,6 +1696,7 @@ function notifyFavoriteWinner() {
   display: grid;
   gap: 12px;
   text-align: center;
+  justify-items: center;
 }
 
 .savings-card--accent {
@@ -1722,6 +1723,7 @@ function notifyFavoriteWinner() {
   font-size: clamp(1.5rem, 3vw, 2.3rem);
   font-weight: 800;
   letter-spacing: -0.06em;
+  text-align: center;
 }
 
 .savings-value--name {
