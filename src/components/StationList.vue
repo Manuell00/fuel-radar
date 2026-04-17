@@ -159,7 +159,7 @@ onUnmounted(() => {
 
           <div class="item-actions">
             <a class="map-link" :href="mapsUrl(station)" target="_blank" rel="noopener noreferrer">
-              Apri in Mappe
+              Mappe
             </a>
             <button
               class="action-chip"
@@ -581,6 +581,12 @@ onUnmounted(() => {
 }
 
 @media (max-width: 720px) {
+  .section-head {
+    justify-items: center;
+    text-align: center;
+    margin-bottom: 2px;
+  }
+
   .section-heading {
     font-size: 0.92rem;
     letter-spacing: 0.14em;
@@ -667,6 +673,8 @@ onUnmounted(() => {
   .map-link {
     flex: 1;
     min-width: 0;
+    font-size: 0.78rem;
+    letter-spacing: 0.01em;
   }
 
   .item-actions {
@@ -689,6 +697,10 @@ onUnmounted(() => {
 
   .item-price {
     font-size: 1.34rem;
+  }
+
+  .map-link {
+    font-size: 0.74rem;
   }
 
   .item-brand,

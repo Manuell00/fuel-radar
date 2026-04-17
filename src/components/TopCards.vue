@@ -132,12 +132,16 @@ const emit = defineEmits(['select-station', 'toggle-favorite'])
   }
 
   .featured-intro {
-    min-height: 0;
-    padding: 0;
+    display: none;
   }
 
   .featured-intro__title {
     font-size: 1.2rem;
+  }
+
+  .section-head {
+    justify-content: center;
+    padding: 0;
   }
 
   .section-heading {
@@ -149,8 +153,5 @@ const emit = defineEmits(['select-station', 'toggle-favorite'])
     width: 72px;
   }
 
-  .section-head {
-    padding: 0;
-  }
 }
 </style>

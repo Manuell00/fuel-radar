@@ -960,14 +960,10 @@ function notifyFavoriteWinner() {
         rel="noopener noreferrer"
         :aria-label="`Naviga verso ${cheapest?.brand} a € ${cheapest?.price?.toFixed(3)}`"
       >
-        <span class="gonow-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-        </span>
         <span class="gonow-copy">
-          <span class="gonow-label">Vai subito</span>
-          <span class="gonow-detail">{{ cheapest?.brand }} · € {{ cheapest?.price?.toFixed(3) }}</span>
+          <span class="gonow-label">Vai in Mappe</span>
+          <span class="gonow-detail">{{ cheapest?.brand }}</span>
         </span>
-        <svg class="gonow-arrow" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
       </a>
     </Transition>
 
@@ -2380,6 +2376,10 @@ function notifyFavoriteWinner() {
     gap: 24px;
   }
 
+  .results-row {
+    gap: 10px;
+  }
+
   .page-titlebar--mobile {
     display: inline-flex;
     margin: 10px auto 4px;
@@ -2423,6 +2423,10 @@ function notifyFavoriteWinner() {
   .savings-overview__panel {
     padding: 18px;
     border-radius: 24px;
+  }
+
+  .savings-intro {
+    display: none;
   }
 
   .mobile-dock {
@@ -2480,6 +2484,12 @@ function notifyFavoriteWinner() {
   .forecast-delta {
     font-size: 0.74rem;
   }
+
+  .update-label {
+    margin-top: 6px;
+    margin-bottom: 10px;
+  }
+
   .splash-mark {
     gap: 12px;
   }
@@ -2545,8 +2555,8 @@ function notifyFavoriteWinner() {
   z-index: 13;
   display: none;
   align-items: center;
-  gap: 12px;
-  padding: 0 20px 0 14px;
+  gap: 0;
+  padding: 0 22px;
   height: 58px;
   border-radius: 999px;
   background: linear-gradient(135deg, #ff9c52, #ff7a1a 55%, #d95504);
@@ -2590,17 +2600,21 @@ function notifyFavoriteWinner() {
 
 .gonow-copy {
   display: grid;
-  gap: 1px;
-  flex: 1;
+  gap: 3px;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
 }
 
 .gonow-label {
-  font-size: 0.72rem;
+  font-size: 0.66rem;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  opacity: 0.88;
   line-height: 1;
+  opacity: 0.86;
 }
 
 .gonow-detail {
@@ -2608,13 +2622,9 @@ function notifyFavoriteWinner() {
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1;
-}
-
-.gonow-arrow {
-  width: 22px;
-  height: 22px;
-  opacity: 0.82;
-  flex: 0 0 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .gonow-fade-enter-active,
