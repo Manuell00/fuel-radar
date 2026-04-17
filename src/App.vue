@@ -849,12 +849,9 @@ function notifyFavoriteWinner() {
 	                    </article>
 	                  </div>
 
-	                  <p v-if="savingsHighlight" class="savings-note savings-note--overview savings-note--highlight">
-	                    <span>Con</span>
-	                    <strong>€ {{ savingsHighlight.amount }}</strong>
-	                    <span>di rifornimento risparmi circa</span>
-	                    <strong>€ {{ savingsHighlight.saved }}</strong>
-	                    <span>rispetto alla media locale.</span>
+	                  <p v-if="savingsHighlight" class="savings-note savings-note--overview savings-note--highlight-inline">
+	                    Risparmio stimato: <strong>€ {{ savingsHighlight.saved }}</strong> con
+	                    <strong>€ {{ savingsHighlight.amount }}</strong> di rifornimento.
 	                  </p>
 	                  <p v-else class="savings-note savings-note--overview">{{ savingsMessage }}</p>
 	                </div>
@@ -1594,6 +1591,13 @@ function notifyFavoriteWinner() {
 
 .savings-filter-trigger {
   margin-top: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  min-height: auto;
+  justify-content: flex-start;
 }
 
 .savings-overview {
@@ -1699,30 +1703,20 @@ function notifyFavoriteWinner() {
   max-width: 70ch;
 }
 
-.savings-note--highlight {
-  max-width: 48ch;
-  margin: 6px auto 0;
-  padding: 18px 22px;
-  border-radius: 22px;
+.savings-note--highlight-inline {
+  margin-top: 8px;
   text-align: center;
-  color: rgba(255, 255, 255, 0.82);
-  font-size: clamp(1.02rem, 1.6vw, 1.16rem);
-  line-height: 1.6;
-  background:
-    radial-gradient(circle at top center, rgba(228, 164, 111, 0.14), transparent 58%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02)),
-    rgba(16, 19, 26, 0.74);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 18px 36px rgba(0, 0, 0, 0.14);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.96rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.5;
 }
 
-.savings-note--highlight strong {
+.savings-note--highlight-inline strong {
   color: #fff8f1;
-  font-size: 1.16em;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-size: 1.02em;
+  letter-spacing: -0.02em;
 }
 
 .forecast-panel {
